@@ -1,0 +1,261 @@
+:root {
+  --bg: #f4f7fb;
+  --panel: #ffffff;
+  --primary: #2f6fed;
+  --primary-dark: #224fb3;
+  --text: #1f2937;
+  --muted: #6b7280;
+  --border: #dfe7f5;
+  --done-bg: #eaf9ef;
+  --done-text: #207a45;
+  --todo-bg: #fff4e5;
+  --todo-text: #a55a00;
+  --danger: #d64545;
+  --shadow: 0 8px 24px rgba(31, 41, 55, 0.08);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: "Segoe UI", "Hiragino Sans", "Yu Gothic", sans-serif;
+  background: linear-gradient(180deg, #eef4ff 0%, var(--bg) 100%);
+  color: var(--text);
+}
+
+button,
+input {
+  font: inherit;
+}
+
+.app {
+  max-width: 960px;
+  margin: 40px auto;
+  padding: 0 16px 32px;
+}
+
+.topbar {
+  margin-bottom: 24px;
+}
+
+.topbar h1 {
+  margin: 0;
+  font-size: clamp(2rem, 3vw, 2.8rem);
+  letter-spacing: 0.04em;
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: minmax(280px, 380px) minmax(320px, 1fr);
+  gap: 24px;
+}
+
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  box-shadow: var(--shadow);
+  padding: 24px;
+}
+
+.panel h2 {
+  margin-top: 0;
+  margin-bottom: 18px;
+  font-size: 1.35rem;
+}
+
+.book-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.field label {
+  font-weight: 600;
+}
+
+.field input {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px 14px;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.field input:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 4px rgba(47, 111, 237, 0.12);
+}
+
+.primary-button,
+.status-button,
+.delete-button {
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: transform 0.15s ease, opacity 0.2s ease;
+}
+
+.primary-button {
+  background: var(--primary);
+  color: #fff;
+  padding: 12px 18px;
+  font-weight: 600;
+}
+
+.primary-button:hover,
+.status-button:hover,
+.delete-button:hover {
+  transform: translateY(-1px);
+}
+
+.primary-button:active,
+.status-button:active,
+.delete-button:active {
+  transform: translateY(0);
+}
+
+.status-message {
+  min-height: 24px;
+  margin: 16px 0 0;
+  color: var(--muted);
+  font-size: 0.95rem;
+}
+
+.status-message.error {
+  color: var(--danger);
+}
+
+.status-message.success {
+  color: var(--done-text);
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.count-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 70px;
+  background: #edf2ff;
+  color: var(--primary-dark);
+  border-radius: 999px;
+  padding: 6px 10px;
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.book-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.book-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: #f9fbff;
+}
+
+.book-info {
+  min-width: 0;
+}
+
+.book-title {
+  margin: 0;
+  font-size: 1.05rem;
+  overflow-wrap: anywhere;
+}
+
+.book-author {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 0.92rem;
+}
+
+.status-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  padding: 6px 12px;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.status-chip.todo {
+  background: var(--todo-bg);
+  color: var(--todo-text);
+}
+
+.status-chip.done {
+  background: var(--done-bg);
+  color: var(--done-text);
+}
+
+.status-button {
+  padding: 8px 12px;
+  font-weight: 700;
+  background: #edf2ff;
+  color: var(--primary-dark);
+}
+
+.status-button.done {
+  background: var(--done-bg);
+  color: var(--done-text);
+}
+
+.delete-button {
+  padding: 8px 12px;
+  background: #fff1f1;
+  color: var(--danger);
+  font-weight: 700;
+}
+
+.empty-state {
+  padding: 26px 18px;
+  border: 1px dashed var(--border);
+  border-radius: 14px;
+  color: var(--muted);
+  text-align: center;
+  background: #fafbfd;
+}
+
+@media (max-width: 760px) {
+  .layout {
+    grid-template-columns: 1fr;
+  }
+
+  .book-item {
+    grid-template-columns: 1fr;
+    align-items: flex-start;
+  }
+
+  .actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+}

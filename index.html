@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>課題図書管理</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div class="app">
+      <header class="topbar">
+        <h1>課題図書管理</h1>
+      </header>
+
+      <main class="layout">
+        <section class="panel">
+          <h2>課題図書を登録</h2>
+
+          <form id="book-form" class="book-form">
+            <div class="field">
+              <label for="book-title">タイトル</label>
+              <input id="book-title" name="title" type="text" maxlength="100" placeholder="例: 人間失格" required />
+            </div>
+
+            <div class="field">
+              <label for="book-author">著者</label>
+              <input id="book-author" name="author" type="text" maxlength="100" placeholder="例: 太宰治" />
+            </div>
+
+            <button type="submit" class="primary-button">登録する</button>
+          </form>
+
+          <p id="status-message" class="status-message" aria-live="polite"></p>
+        </section>
+
+        <section class="panel">
+          <div class="section-header">
+            <h2>読書状況</h2>
+            <span id="book-count" class="count-badge">0件</span>
+          </div>
+
+          <ul id="book-list" class="book-list" aria-live="polite"></ul>
+        </section>
+      </main>
+    </div>
+
+    <script type="module" src="script.js"></script>
+  </body>
+</html>
