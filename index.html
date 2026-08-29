@@ -14,9 +14,27 @@
 
       <main class="layout">
         <section class="panel">
-          <h2>課題図書を登録</h2>
+          <div class="auth-box">
+            <h2>Firebaseログイン</h2>
+            <div class="auth-actions">
+              <button id="login-button" type="button" class="primary-button">Googleでログイン</button>
+              <button id="logout-button" type="button" class="secondary-button hidden">ログアウト</button>
+            </div>
+          </div>
+
+          <form id="firebase-config-form" class="config-form">
+            <label for="firebase-config-json">Firebase設定JSONを保存</label>
+            <textarea
+              id="firebase-config-json"
+              rows="8"
+              placeholder='{"apiKey":"...","authDomain":"...","projectId":"...","storageBucket":"...","messagingSenderId":"...","appId":"..."}'
+            ></textarea>
+            <button type="submit" class="secondary-button">設定を保存</button>
+          </form>
 
           <form id="book-form" class="book-form">
+            <h2>課題図書を登録</h2>
+
             <div class="field">
               <label for="book-title">タイトル</label>
               <input id="book-title" name="title" type="text" maxlength="100" placeholder="例: 人間失格" required />

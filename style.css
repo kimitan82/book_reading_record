@@ -3,6 +3,7 @@
   --panel: #ffffff;
   --primary: #2f6fed;
   --primary-dark: #224fb3;
+  --secondary: #eef2ff;
   --text: #1f2937;
   --muted: #6b7280;
   --border: #dfe7f5;
@@ -26,7 +27,8 @@ body {
 }
 
 button,
-input {
+input,
+textarea {
   font: inherit;
 }
 
@@ -66,10 +68,38 @@ input {
   font-size: 1.35rem;
 }
 
+.auth-box,
+.config-form,
 .book-form {
   display: flex;
   flex-direction: column;
   gap: 16px;
+}
+
+.auth-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.config-form {
+  margin-top: 18px;
+  margin-bottom: 18px;
+  padding-top: 18px;
+  border-top: 1px solid var(--border);
+}
+
+.config-form label {
+  font-weight: 600;
+}
+
+.config-form textarea {
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px 14px;
+  resize: vertical;
+  min-height: 130px;
 }
 
 .field {
@@ -89,13 +119,15 @@ input {
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
-.field input:focus {
+.field input:focus,
+.config-form textarea:focus {
   outline: none;
   border-color: var(--primary);
   box-shadow: 0 0 0 4px rgba(47, 111, 237, 0.12);
 }
 
 .primary-button,
+.secondary-button,
 .status-button,
 .delete-button {
   border: none;
@@ -111,16 +143,29 @@ input {
   font-weight: 600;
 }
 
+.secondary-button {
+  background: var(--secondary);
+  color: var(--primary-dark);
+  padding: 12px 18px;
+  font-weight: 600;
+}
+
 .primary-button:hover,
+.secondary-button:hover,
 .status-button:hover,
 .delete-button:hover {
   transform: translateY(-1px);
 }
 
 .primary-button:active,
+.secondary-button:active,
 .status-button:active,
 .delete-button:active {
   transform: translateY(0);
+}
+
+.hidden {
+  display: none;
 }
 
 .status-message {
