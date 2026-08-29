@@ -15,11 +15,30 @@
       <main class="layout">
         <section class="panel">
           <div class="auth-box">
-            <h2>Firebaseログイン</h2>
-            <div class="auth-actions">
-              <button id="login-button" type="button" class="primary-button">Googleでログイン</button>
-              <button id="logout-button" type="button" class="secondary-button hidden">ログアウト</button>
-            </div>
+            <h2>Firebase Authentication</h2>
+
+            <form id="auth-form" class="auth-form">
+              <div class="field" id="auth-name-field">
+                <label for="auth-name">ユーザー名</label>
+                <input id="auth-name" name="name" type="text" maxlength="50" placeholder="例: 山田 太郎" />
+              </div>
+
+              <div class="field">
+                <label for="auth-email">メールアドレス</label>
+                <input id="auth-email" name="email" type="email" placeholder="example@email.com" required />
+              </div>
+
+              <div class="field">
+                <label for="auth-password">パスワード</label>
+                <input id="auth-password" name="password" type="password" minlength="6" placeholder="6文字以上" required />
+              </div>
+
+              <div class="auth-actions">
+                <button id="signup-button" type="submit" class="primary-button">新規登録</button>
+                <button id="login-button" type="button" class="secondary-button">ログイン</button>
+                <button id="logout-button" type="button" class="secondary-button hidden">ログアウト</button>
+              </div>
+            </form>
           </div>
 
           <form id="firebase-config-form" class="config-form">

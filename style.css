@@ -69,6 +69,7 @@ textarea {
 }
 
 .auth-box,
+.auth-form,
 .config-form,
 .book-form {
   display: flex;

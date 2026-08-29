@@ -1,31 +1,38 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {
+  createUserWithEmailAndPassword,
   getAuth,
-  GoogleAuthProvider,
   onAuthStateChanged,
-  signInWithPopup,
+  signInWithEmailAndPassword,
   signOut,
+  updateProfile,
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import {
   addDoc,
   collection,
   deleteDoc,
   doc,
+  getDoc,
   getFirestore,
   onSnapshot,
   orderBy,
   query,
   serverTimestamp,
+  setDoc,
   updateDoc,
-  where,
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const STORAGE_KEY = "bookReadingFirebaseConfig";
+const authForm = document.getElementById("auth-form");
+const nameInput = document.getElementById("auth-name");
+const emailInput = document.getElementById("auth-email");
+const passwordInput = document.getElementById("auth-password");
+const signupButton = document.getElementById("signup-button");
+const loginButton = document.getElementById("login-button");
+const logoutButton = document.getElementById("logout-button");
 const form = document.getElementById("book-form");
 const configForm = document.getElementById("firebase-config-form");
 const configInput = document.getElementById("firebase-config-json");
-const loginButton = document.getElementById("login-button");
-const logoutButton = document.getElementById("logout-button");
 const titleInput = document.getElementById("book-title");
 const authorInput = document.getElementById("book-author");
 const bookList = document.getElementById("book-list");
@@ -43,14 +50,16 @@ function setStatus(message, type = "") {
 }
 
 function isValidFirebaseConfig(config) {
-  return config &&
+  return (
+    config &&
     typeof config === "object" &&
     typeof config.apiKey === "string" &&
     config.apiKey.trim() &&
     typeof config.projectId === "string" &&
     config.projectId.trim() &&
     typeof config.authDomain === "string" &&
-    config.authDomain.trim();
+    config.authDomain.trim()
+  );
 }
 
 function getStoredFirebaseConfig() {
@@ -76,12 +85,46 @@ function loadConfigIntoForm() {
 
 function setAuthUi(user) {
   const isLoggedIn = Boolean(user);
-  loginButton.classList.toggle("hidden", isLoggedIn);
+  const nameField = document.getElementById("auth-name-field");
+
+  nameField.classList.toggle("hidden", isLoggedIn);
+  signupButton.disabled = isLoggedIn;
+  signupButton.style.opacity = isLoggedIn ? "0.6" : "1";
+  loginButton.disabled = isLoggedIn;
+  loginButton.style.opacity = isLoggedIn ? "0.6" : "1";
   logoutButton.classList.toggle("hidden", !isLoggedIn);
+
+  nameInput.disabled = isLoggedIn;
+  emailInput.disabled = isLoggedIn;
+  passwordInput.disabled = isLoggedIn;
+
   form.querySelector("button[type='submit']").disabled = !isLoggedIn;
   form.querySelector("button[type='submit']").style.opacity = isLoggedIn ? "1" : "0.6";
   titleInput.disabled = !isLoggedIn;
   authorInput.disabled = !isLoggedIn;
+}
+
+async function ensureUserProfile(user, providedName = "") {
+  if (!db || !user) {
+    return;
+  }
+
+  const userRef = doc(db, "users", user.uid);
+  const userSnapshot = await getDoc(userRef);
+  const displayName =
+    providedName || user.displayName || userSnapshot.data()?.name || user.email?.split("@")[0] || "ユーザー";
+
+  const userData = {
+    uid: user.uid,
+    name: displayName,
+    updatedAt: serverTimestamp(),
+  };
+
+  if (!userSnapshot.exists()) {
+    userData.createdAt = serverTimestamp();
+  }
+
+  await setDoc(userRef, userData, { merge: true });
 }
 
 function renderEmptyState() {
@@ -131,7 +174,7 @@ function renderBooks(books) {
     toggleButton.textContent = book.read ? "未読に戻す" : "読んだにする";
     toggleButton.addEventListener("click", async () => {
       try {
-        const bookRef = doc(db, "readingBooks", book.id);
+        const bookRef = doc(db, "users", currentUser.uid, "readingRecords", book.id);
         await updateDoc(bookRef, {
           read: !book.read,
           updatedAt: serverTimestamp(),
@@ -148,7 +191,7 @@ function renderBooks(books) {
     deleteButton.textContent = "削除";
     deleteButton.addEventListener("click", async () => {
       try {
-        await deleteDoc(doc(db, "readingBooks", book.id));
+        await deleteDoc(doc(db, "users", currentUser.uid, "readingRecords", book.id));
         setStatus(`${book.title}を削除しました。`, "success");
       } catch (error) {
         console.error(error);
@@ -178,12 +221,8 @@ function stopBookListener() {
 function startBookListener(user) {
   stopBookListener();
 
-  const booksCollection = collection(db, "readingBooks");
-  const booksQuery = query(
-    booksCollection,
-    where("uid", "==", user.uid),
-    orderBy("createdAt", "desc")
-  );
+  const booksCollection = collection(db, "users", user.uid, "readingRecords");
+  const booksQuery = query(booksCollection, orderBy("createdAt", "desc"));
 
   unsubscribeBooks = onSnapshot(
     booksQuery,
@@ -214,16 +253,17 @@ async function initFirebaseApp() {
   auth = getAuth(app);
   db = getFirestore(app);
 
-  onAuthStateChanged(auth, (user) => {
+  onAuthStateChanged(auth, async (user) => {
     currentUser = user;
     setAuthUi(user);
 
     if (user) {
-      setStatus(`${user.displayName || "ユーザー"}でログイン中です。`, "success");
+      await ensureUserProfile(user);
+      setStatus(`${user.displayName || "ユーザー"}さんでログイン中です。`, "success");
       startBookListener(user);
     } else {
       stopBookListener();
-      setStatus("Googleアカウントでログインしてください。", "");
+      setStatus("メールアドレスとパスワードでログインしてください。", "");
     }
   });
 
@@ -249,18 +289,61 @@ configForm.addEventListener("submit", (event) => {
   }
 });
 
+authForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+
+  if (!auth || !db) {
+    setStatus("Firebase設定を先に保存してください。", "error");
+    return;
+  }
+
+  const name = nameInput.value.trim();
+  const email = emailInput.value.trim();
+  const password = passwordInput.value;
+
+  if (!email || !password || password.length < 6) {
+    setStatus("メールアドレスと6文字以上のパスワードを入力してください。", "error");
+    return;
+  }
+
+  try {
+    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+
+    if (name) {
+      await updateProfile(userCredential.user, { displayName: name });
+    }
+
+    await ensureUserProfile(userCredential.user, name);
+    authForm.reset();
+    setStatus(`${name || userCredential.user.email}さんを登録しました。`, "success");
+  } catch (error) {
+    console.error(error);
+    setStatus("アカウント登録に失敗しました。もう一度お試しください。", "error");
+  }
+});
+
 loginButton.addEventListener("click", async () => {
   if (!auth) {
     setStatus("Firebase設定を先に保存してください。", "error");
     return;
   }
 
+  const email = emailInput.value.trim();
+  const password = passwordInput.value;
+
+  if (!email || !password || password.length < 6) {
+    setStatus("メールアドレスと6文字以上のパスワードを入力してください。", "error");
+    return;
+  }
+
   try {
-    const provider = new GoogleAuthProvider();
-    await signInWithPopup(auth, provider);
+    const userCredential = await signInWithEmailAndPassword(auth, email, password);
+    await ensureUserProfile(userCredential.user);
+    authForm.reset();
+    setStatus(`${userCredential.user.email}でログインしました。`, "success");
   } catch (error) {
     console.error(error);
-    setStatus("Googleログインに失敗しました。", "error");
+    setStatus("ログインに失敗しました。メールアドレスとパスワードを確認してください。", "error");
   }
 });
 
@@ -271,6 +354,7 @@ logoutButton.addEventListener("click", async () => {
 
   try {
     await signOut(auth);
+    authForm.reset();
     setStatus("ログアウトしました。", "success");
   } catch (error) {
     console.error(error);
@@ -296,9 +380,8 @@ form.addEventListener("submit", async (event) => {
   }
 
   try {
-    const booksCollection = collection(db, "readingBooks");
+    const booksCollection = collection(db, "users", currentUser.uid, "readingRecords");
     await addDoc(booksCollection, {
-      uid: currentUser.uid,
       title,
       author: author || "著者未記入",
       read: false,
