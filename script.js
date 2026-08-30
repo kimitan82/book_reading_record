@@ -209,16 +209,25 @@ async function ensureUserProfile(user) {
   const userDocRef = doc(db, "users", user.uid);
   const fallbackName = user.displayName?.trim() || user.email?.split("@")[0] || "ユーザー";
 
+  if (!navigator.onLine) {
+    userNameLabel.textContent = fallbackName;
+    return;
+  }
+
   try {
     const userDoc = await getDoc(userDocRef);
 
     if (!userDoc.exists()) {
       try {
-        await setDoc(userDocRef, {
-          name: fallbackName,
-          createdAt: serverTimestamp(),
-          updatedAt: serverTimestamp(),
-        }, { merge: true });
+        await setDoc(
+          userDocRef,
+          {
+            name: fallbackName,
+            createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp(),
+          },
+          { merge: true }
+        );
       } catch (createError) {
         console.warn("ユーザープロファイルの作成に失敗しましたが、ログイン処理は継続します。", createError);
       }
@@ -245,8 +254,13 @@ async function handleAuthStateChanged(user) {
   }
 
   toggleAuthRequiredSections(true);
-  await ensureUserProfile(user);
-  subscribeToBooks(user.uid);
+  userNameLabel.textContent = user.displayName || user.email?.split("@")[0] || "ユーザー";
+  void ensureUserProfile(user);
+  try {
+    subscribeToBooks(user.uid);
+  } catch (error) {
+    console.warn("読書記録の購読に失敗しました。", error);
+  }
   setAuthStatus(`ログイン中: ${user.email}`, "success");
   setStatus("", "");
 }
@@ -260,9 +274,13 @@ async function showLoggedInState(user) {
 
   currentUser = user;
   toggleAuthRequiredSections(true);
-  await ensureUserProfile(user);
-  subscribeToBooks(user.uid);
   userNameLabel.textContent = user.displayName || user.email?.split("@")[0] || "ユーザー";
+  void ensureUserProfile(user);
+  try {
+    subscribeToBooks(user.uid);
+  } catch (error) {
+    console.warn("読書記録の購読に失敗しました。", error);
+  }
   setAuthStatus(`ログイン中: ${user.email}`, "success");
   setStatus("", "");
 }
@@ -280,7 +298,7 @@ loginForm.addEventListener("submit", async (event) => {
 
   try {
     const userCredential = await signInWithEmailAndPassword(auth, email, password);
-    await showLoggedInState(userCredential.user);
+    showLoggedInState(userCredential.user);
     setAuthStatus("ログインに成功しました。", "success");
     loginForm.reset();
   } catch (error) {
@@ -306,16 +324,20 @@ signupForm.addEventListener("submit", async (event) => {
     const userDocRef = doc(db, "users", userCredential.user.uid);
 
     try {
-      await setDoc(userDocRef, {
-        name,
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-      }, { merge: true });
+      await setDoc(
+        userDocRef,
+        {
+          name,
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+        },
+        { merge: true }
+      );
     } catch (profileError) {
       console.warn("ユーザープロファイルの保存に失敗しましたが、ログイン処理は継続します。", profileError);
     }
 
-    await showLoggedInState(userCredential.user);
+    showLoggedInState(userCredential.user);
     setAuthStatus("新規登録に成功しました。", "success");
     signupForm.reset();
   } catch (error) {
