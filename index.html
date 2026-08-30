@@ -3,18 +3,74 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>課題図書管理</title>
+    <title>読書記録管理</title>
     <link rel="stylesheet" href="style.css" />
   </head>
   <body>
     <div class="app">
       <header class="topbar">
-        <h1>課題図書管理</h1>
+        <div class="topbar-row">
+          <h1>読書記録管理</h1>
+          <button id="logout-button" type="button" class="secondary-button hidden">ログアウト</button>
+        </div>
       </header>
 
       <main class="layout">
-        <section class="panel">
-          <h2>課題図書を登録</h2>
+        <section class="panel auth-panel">
+          <h2>Firebase設定</h2>
+          <form id="firebase-config-form" class="stacked-form">
+            <div class="field">
+              <label for="firebase-config-json">Firebase config JSON</label>
+              <textarea id="firebase-config-json" rows="12" placeholder='{"apiKey":"...","authDomain":"...","projectId":"..."}' required></textarea>
+            </div>
+            <button type="submit" class="primary-button">保存する</button>
+          </form>
+
+          <div class="auth-forms">
+            <form id="signup-form" class="stacked-form">
+              <h3>新規登録</h3>
+              <div class="field">
+                <label for="signup-name">名前</label>
+                <input id="signup-name" type="text" maxlength="50" placeholder="例: 山田太郎" required />
+              </div>
+
+              <div class="field">
+                <label for="signup-email">メールアドレス</label>
+                <input id="signup-email" type="email" maxlength="255" placeholder="example@email.com" required />
+              </div>
+
+              <div class="field">
+                <label for="signup-password">パスワード</label>
+                <input id="signup-password" type="password" minlength="6" maxlength="128" placeholder="6文字以上" required />
+              </div>
+
+              <button type="submit" class="primary-button">新規登録</button>
+            </form>
+
+            <form id="login-form" class="stacked-form">
+              <h3>ログイン</h3>
+              <div class="field">
+                <label for="login-email">メールアドレス</label>
+                <input id="login-email" type="email" maxlength="255" placeholder="example@email.com" required />
+              </div>
+
+              <div class="field">
+                <label for="login-password">パスワード</label>
+                <input id="login-password" type="password" maxlength="128" placeholder="パスワード" required />
+              </div>
+
+              <button type="submit" class="primary-button">ログイン</button>
+            </form>
+          </div>
+
+          <p id="auth-status" class="status-message" aria-live="polite"></p>
+        </section>
+
+        <section class="panel" data-auth-required>
+          <div class="section-header">
+            <h2>読書記録</h2>
+            <span id="user-name" class="user-badge">未ログイン</span>
+          </div>
 
           <form id="book-form" class="book-form">
             <div class="field">
@@ -33,7 +89,7 @@
           <p id="status-message" class="status-message" aria-live="polite"></p>
         </section>
 
-        <section class="panel">
+        <section class="panel panel-wide" data-auth-required>
           <div class="section-header">
             <h2>読書状況</h2>
             <span id="book-count" class="count-badge">0件</span>

@@ -1,26 +1,27 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {
+  createUserWithEmailAndPassword,
+  getAuth,
+  onAuthStateChanged,
+  signInWithEmailAndPassword,
+  signOut,
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import {
   addDoc,
   collection,
   deleteDoc,
   doc,
+  getDoc,
   getFirestore,
   onSnapshot,
   orderBy,
   query,
   serverTimestamp,
+  setDoc,
   updateDoc,
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-const firebaseConfig = {
-  apiKey: "AIzaSyCQCfaJLVW9zwQ0NuSROI_vBgNE4ySmCjA",
-  authDomain: "record-reading-books.firebaseapp.com",
-  projectId: "record-reading-books",
-  storageBucket: "record-reading-books.firebasestorage.app",
-  messagingSenderId: "557327399113",
-  appId: "1:557327399113:web:81b1c213de5281a60f7518",
-  measurementId: "G-DTJDR0P6P2"
-};
+const STORAGE_KEY = "bookReadingFirebaseConfig";
 
 const form = document.getElementById("book-form");
 const titleInput = document.getElementById("book-title");
@@ -28,18 +29,72 @@ const authorInput = document.getElementById("book-author");
 const bookList = document.getElementById("book-list");
 const statusMessage = document.getElementById("status-message");
 const bookCount = document.getElementById("book-count");
+const authStatus = document.getElementById("auth-status");
+const userNameLabel = document.getElementById("user-name");
+const firebaseConfigForm = document.getElementById("firebase-config-form");
+const firebaseConfigInput = document.getElementById("firebase-config-json");
+const loginForm = document.getElementById("login-form");
+const signupForm = document.getElementById("signup-form");
+const logoutButton = document.getElementById("logout-button");
+const authForms = document.querySelector(".auth-forms");
+const appSections = document.querySelectorAll("[data-auth-required]");
 
-const hasFirebaseConfig = Object.values(firebaseConfig).every((value) => value && !value.includes("YOUR_"));
+let app;
+let db;
+let auth;
+let booksUnsubscribe = null;
+let currentUser = null;
 
 function setStatus(message, type = "") {
   statusMessage.textContent = message;
   statusMessage.className = `status-message ${type}`.trim();
 }
 
+function setAuthStatus(message, type = "") {
+  authStatus.textContent = message;
+  authStatus.className = `status-message ${type}`.trim();
+}
+
+function getStoredFirebaseConfig() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch (error) {
+    console.error("Firebase設定の読み込みに失敗しました。", error);
+    return null;
+  }
+}
+
+function saveFirebaseConfig(config) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(config));
+}
+
+function hasValidFirebaseConfig(config) {
+  return config && typeof config === "object" && Object.values(config).every((value) => value && !String(value).includes("YOUR_"));
+}
+
+function toggleAuthRequiredSections(isLoggedIn) {
+  appSections.forEach((element) => {
+    element.classList.toggle("hidden", !isLoggedIn);
+  });
+
+  authForms.classList.toggle("hidden", isLoggedIn);
+  logoutButton.classList.toggle("hidden", !isLoggedIn);
+}
+
+function resetBooksView() {
+  bookList.innerHTML = "";
+  bookCount.textContent = "0件";
+  const emptyState = document.createElement("li");
+  emptyState.className = "empty-state";
+  emptyState.textContent = "ログインして読書記録を管理してください。";
+  bookList.appendChild(emptyState);
+}
+
 function renderEmptyState() {
   const emptyState = document.createElement("li");
   emptyState.className = "empty-state";
-  emptyState.textContent = "まだ課題図書が登録されていません。";
+  emptyState.textContent = "まだ読書記録が登録されていません。";
   bookList.appendChild(emptyState);
 }
 
@@ -83,7 +138,7 @@ function renderBooks(books) {
     toggleButton.textContent = book.read ? "未読に戻す" : "読んだにする";
     toggleButton.addEventListener("click", async () => {
       try {
-        const bookRef = doc(db, "readingBooks", book.id);
+        const bookRef = doc(collection(db, "users", currentUser.uid, "readingRecords"), book.id);
         await updateDoc(bookRef, {
           read: !book.read,
           updatedAt: serverTimestamp(),
@@ -100,7 +155,8 @@ function renderBooks(books) {
     deleteButton.textContent = "削除";
     deleteButton.addEventListener("click", async () => {
       try {
-        await deleteDoc(doc(db, "readingBooks", book.id));
+        const bookRef = doc(collection(db, "users", currentUser.uid, "readingRecords"), book.id);
+        await deleteDoc(bookRef);
         setStatus(`${book.title}を削除しました。`, "success");
       } catch (error) {
         console.error(error);
@@ -118,19 +174,17 @@ function renderBooks(books) {
   });
 }
 
-let db;
+function subscribeToBooks(userId) {
+  if (booksUnsubscribe) {
+    booksUnsubscribe();
+    booksUnsubscribe = null;
+  }
 
-if (!hasFirebaseConfig) {
-  setStatus("Firebaseの設定を script.js に入力してください。", "error");
-} else {
-  const app = initializeApp(firebaseConfig);
-  db = getFirestore(app);
+  const readingRecordsCollection = collection(db, "users", userId, "readingRecords");
+  const readingRecordsQuery = query(readingRecordsCollection, orderBy("createdAt", "desc"));
 
-  const booksCollection = collection(db, "readingBooks");
-  const booksQuery = query(booksCollection, orderBy("createdAt", "desc"));
-
-  onSnapshot(
-    booksQuery,
+  booksUnsubscribe = onSnapshot(
+    readingRecordsQuery,
     (snapshot) => {
       const books = snapshot.docs.map((docSnapshot) => ({
         id: docSnapshot.id,
@@ -142,37 +196,188 @@ if (!hasFirebaseConfig) {
     },
     (error) => {
       console.error(error);
-      setStatus("Firebaseからの読み込みに失敗しました。", "error");
+      setStatus("Firebaseからの読書記録の読み込みに失敗しました。", "error");
     }
   );
-
-  form.addEventListener("submit", async (event) => {
-    event.preventDefault();
-
-    const title = titleInput.value.trim();
-    const author = authorInput.value.trim();
-
-    if (!title) {
-      setStatus("タイトルを入力してください。", "error");
-      titleInput.focus();
-      return;
-    }
-
-    try {
-      await addDoc(booksCollection, {
-        title,
-        author: author || "著者未記入",
-        read: false,
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-      });
-
-      form.reset();
-      titleInput.focus();
-      setStatus(`${title}を登録しました。`, "success");
-    } catch (error) {
-      console.error(error);
-      setStatus("課題図書の登録に失敗しました。", "error");
-    }
-  });
 }
+
+async function ensureUserProfile(user) {
+  if (!db || !user) {
+    return;
+  }
+
+  const userDocRef = doc(db, "users", user.uid);
+  const userDoc = await getDoc(userDocRef);
+
+  if (!userDoc.exists()) {
+    const userName = user.displayName?.trim() || user.email?.split("@")[0] || "ユーザー";
+    await setDoc(userDocRef, {
+      name: userName,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    });
+  }
+
+  const userData = userDoc.exists() ? userDoc.data() : { name: user.email?.split("@")[0] || "ユーザー" };
+  userNameLabel.textContent = userData.name || "ユーザー";
+}
+
+async function handleAuthStateChanged(user) {
+  currentUser = user;
+
+  if (!user) {
+    toggleAuthRequiredSections(false);
+    resetBooksView();
+    userNameLabel.textContent = "未ログイン";
+    setStatus("ログインしてください。", "");
+    setAuthStatus("", "");
+    return;
+  }
+
+  await ensureUserProfile(user);
+  toggleAuthRequiredSections(true);
+  subscribeToBooks(user.uid);
+  setAuthStatus(`ログイン中: ${user.email}`, "success");
+  setStatus("", "");
+}
+
+async function initializeFirebase() {
+  const storedConfig = getStoredFirebaseConfig();
+
+  if (!hasValidFirebaseConfig(storedConfig)) {
+    setStatus("Firebase設定を保存してください。", "error");
+    toggleAuthRequiredSections(false);
+    setAuthStatus("", "");
+    return;
+  }
+
+  toggleAuthRequiredSections(false);
+  app = initializeApp(storedConfig);
+  db = getFirestore(app);
+  auth = getAuth(app);
+
+  onAuthStateChanged(auth, handleAuthStateChanged);
+
+  firebaseConfigInput.value = JSON.stringify(storedConfig, null, 2);
+}
+
+firebaseConfigForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+
+  let config = null;
+
+  try {
+    config = JSON.parse(firebaseConfigInput.value);
+  } catch (error) {
+    setStatus("Firebase設定のJSONを正しい形式で入力してください。", "error");
+    return;
+  }
+
+  if (!hasValidFirebaseConfig(config)) {
+    setStatus("Firebase設定の値が不完全です。", "error");
+    return;
+  }
+
+  saveFirebaseConfig(config);
+  setStatus("Firebase設定を保存しました。ページを再読み込みしてログインしてください。", "success");
+  window.location.reload();
+});
+
+loginForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+
+  const email = document.getElementById("login-email").value.trim();
+  const password = document.getElementById("login-password").value;
+
+  if (!email || !password) {
+    setAuthStatus("メールアドレスとパスワードを入力してください。", "error");
+    return;
+  }
+
+  try {
+    await signInWithEmailAndPassword(auth, email, password);
+    setAuthStatus("ログインしました。", "success");
+    loginForm.reset();
+  } catch (error) {
+    console.error(error);
+    setAuthStatus("ログインに失敗しました。入力内容を確認してください。", "error");
+  }
+});
+
+signupForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+
+  const name = document.getElementById("signup-name").value.trim();
+  const email = document.getElementById("signup-email").value.trim();
+  const password = document.getElementById("signup-password").value;
+
+  if (!name || !email || !password) {
+    setAuthStatus("名前、メールアドレス、パスワードを入力してください。", "error");
+    return;
+  }
+
+  try {
+    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+    const userDocRef = doc(db, "users", userCredential.user.uid);
+    await setDoc(userDocRef, {
+      name,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    });
+
+    setAuthStatus("新規登録しました。", "success");
+    signupForm.reset();
+  } catch (error) {
+    console.error(error);
+    setAuthStatus("新規登録に失敗しました。", "error");
+  }
+});
+
+logoutButton.addEventListener("click", async () => {
+  try {
+    await signOut(auth);
+    setAuthStatus("ログアウトしました。", "success");
+  } catch (error) {
+    console.error(error);
+    setAuthStatus("ログアウトに失敗しました。", "error");
+  }
+});
+
+form.addEventListener("submit", async (event) => {
+  event.preventDefault();
+
+  if (!currentUser || !db) {
+    setStatus("ログインしてください。", "error");
+    return;
+  }
+
+  const title = titleInput.value.trim();
+  const author = authorInput.value.trim();
+
+  if (!title) {
+    setStatus("タイトルを入力してください。", "error");
+    titleInput.focus();
+    return;
+  }
+
+  try {
+    const readingRecordsCollection = collection(db, "users", currentUser.uid, "readingRecords");
+    await addDoc(readingRecordsCollection, {
+      title,
+      author: author || "著者未記入",
+      read: false,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    });
+
+    form.reset();
+    titleInput.focus();
+    setStatus(`${title}を登録しました。`, "success");
+  } catch (error) {
+    console.error(error);
+    setStatus("読書記録の登録に失敗しました。", "error");
+  }
+});
+
+resetBooksView();
+initializeFirebase();
