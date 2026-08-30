@@ -3,6 +3,7 @@
   --panel: #ffffff;
   --primary: #2f6fed;
   --primary-dark: #224fb3;
+  --secondary: #eef2ff;
   --text: #1f2937;
   --muted: #6b7280;
   --border: #dfe7f5;
@@ -107,6 +108,32 @@ button {
   gap: 16px;
 }
 
+.auth-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.config-form {
+  margin-top: 18px;
+  margin-bottom: 18px;
+  padding-top: 18px;
+  border-top: 1px solid var(--border);
+}
+
+.config-form label {
+  font-weight: 600;
+}
+
+.config-form textarea {
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px 14px;
+  resize: vertical;
+  min-height: 130px;
+}
+
 .field {
   display: flex;
   flex-direction: column;
@@ -174,6 +201,10 @@ button {
 .status-button:active,
 .delete-button:active {
   transform: translateY(0);
+}
+
+.hidden {
+  display: none;
 }
 
 .status-message {

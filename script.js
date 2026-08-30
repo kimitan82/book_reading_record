@@ -7,6 +7,14 @@ import {
   signOut,
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import {
+  createUserWithEmailAndPassword,
+  getAuth,
+  onAuthStateChanged,
+  signInWithEmailAndPassword,
+  signOut,
+  updateProfile,
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import {
   addDoc,
   collection,
   deleteDoc,
@@ -25,6 +33,8 @@ const db = getFirestore(app);
 const auth = getAuth(app);
 
 const form = document.getElementById("book-form");
+const configForm = document.getElementById("firebase-config-form");
+const configInput = document.getElementById("firebase-config-json");
 const titleInput = document.getElementById("book-title");
 const authorInput = document.getElementById("book-author");
 const bookList = document.getElementById("book-list");
@@ -169,7 +179,6 @@ function subscribeToBooks(userId) {
         ...docSnapshot.data(),
         read: Boolean(docSnapshot.data().read),
       }));
-
       renderBooks(books);
     },
     (error) => {
