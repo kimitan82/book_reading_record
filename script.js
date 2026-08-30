@@ -243,6 +243,20 @@ async function handleAuthStateChanged(user) {
 
 onAuthStateChanged(auth, handleAuthStateChanged);
 
+async function showLoggedInState(user) {
+  if (!user) {
+    return;
+  }
+
+  currentUser = user;
+  await ensureUserProfile(user);
+  toggleAuthRequiredSections(true);
+  subscribeToBooks(user.uid);
+  userNameLabel.textContent = user.displayName || user.email?.split("@")[0] || "ユーザー";
+  setAuthStatus(`ログイン中: ${user.email}`, "success");
+  setStatus("", "");
+}
+
 loginForm.addEventListener("submit", async (event) => {
   event.preventDefault();
 
@@ -255,7 +269,8 @@ loginForm.addEventListener("submit", async (event) => {
   }
 
   try {
-    await signInWithEmailAndPassword(auth, email, password);
+    const userCredential = await signInWithEmailAndPassword(auth, email, password);
+    await showLoggedInState(userCredential.user);
     setAuthStatus("ログインに成功しました。", "success");
     loginForm.reset();
   } catch (error) {
@@ -285,6 +300,7 @@ signupForm.addEventListener("submit", async (event) => {
       updatedAt: serverTimestamp(),
     });
 
+    await showLoggedInState(userCredential.user);
     setAuthStatus("新規登録に成功しました。", "success");
     signupForm.reset();
   } catch (error) {
@@ -296,6 +312,9 @@ signupForm.addEventListener("submit", async (event) => {
 logoutButton.addEventListener("click", async () => {
   try {
     await signOut(auth);
+    toggleAuthRequiredSections(false);
+    resetBooksView();
+    userNameLabel.textContent = "未ログイン";
     setAuthStatus("ログアウトしました。", "success");
   } catch (error) {
     console.error(error);
