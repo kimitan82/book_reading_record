@@ -7,14 +7,6 @@ import {
   signOut,
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import {
-  createUserWithEmailAndPassword,
-  getAuth,
-  onAuthStateChanged,
-  signInWithEmailAndPassword,
-  signOut,
-  updateProfile,
-} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import {
   addDoc,
   collection,
   deleteDoc,
@@ -59,6 +51,27 @@ function setStatus(message, type = "") {
 function setAuthStatus(message, type = "") {
   authStatus.textContent = message;
   authStatus.className = `status-message ${type}`.trim();
+}
+
+function getAuthErrorMessage(error) {
+  const code = error?.code || "";
+
+  switch (code) {
+    case "auth/email-already-in-use":
+      return "このメールアドレスは既に登録されています。";
+    case "auth/invalid-email":
+      return "メールアドレスの形式が正しくありません。";
+    case "auth/weak-password":
+      return "パスワードは6文字以上で入力してください。";
+    case "auth/user-not-found":
+      return "アカウントが見つかりません。メールアドレスを確認してください。";
+    case "auth/wrong-password":
+      return "パスワードが違います。";
+    case "auth/too-many-requests":
+      return "ログイン試行回数が多いためしばらく待ってから再試行してください。";
+    default:
+      return error?.message || "認証に失敗しました。";
+  }
 }
 
 function toggleAuthRequiredSections(isLoggedIn) {
@@ -243,11 +256,11 @@ loginForm.addEventListener("submit", async (event) => {
 
   try {
     await signInWithEmailAndPassword(auth, email, password);
-    setAuthStatus("ログインしました。", "success");
+    setAuthStatus("ログインに成功しました。", "success");
     loginForm.reset();
   } catch (error) {
     console.error(error);
-    setAuthStatus("ログインに失敗しました。入力内容を確認してください。", "error");
+    setAuthStatus(`ログインに失敗しました。${getAuthErrorMessage(error)}`, "error");
   }
 });
 
@@ -272,11 +285,11 @@ signupForm.addEventListener("submit", async (event) => {
       updatedAt: serverTimestamp(),
     });
 
-    setAuthStatus("新規登録しました。", "success");
+    setAuthStatus("新規登録に成功しました。", "success");
     signupForm.reset();
   } catch (error) {
     console.error(error);
-    setAuthStatus("新規登録に失敗しました。", "error");
+    setAuthStatus(`新規登録に失敗しました。${getAuthErrorMessage(error)}`, "error");
   }
 });
 
