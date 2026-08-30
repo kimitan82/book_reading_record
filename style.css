@@ -210,15 +210,24 @@ button {
 .status-message {
   min-height: 24px;
   margin: 16px 0 0;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  background: #f3f4f6;
   color: var(--muted);
   font-size: 0.95rem;
+  font-weight: 600;
 }
 
 .status-message.error {
+  background: #fff1f1;
+  border-color: #f5c2c7;
   color: var(--danger);
 }
 
 .status-message.success {
+  background: #edfff4;
+  border-color: #bfe9cc;
   color: var(--done-text);
 }
 
