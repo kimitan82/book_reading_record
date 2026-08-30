@@ -1,4 +1,4 @@
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import app from "./firebase.js";
 import {
   createUserWithEmailAndPassword,
   getAuth,
@@ -21,7 +21,8 @@ import {
   updateDoc,
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-const STORAGE_KEY = "bookReadingFirebaseConfig";
+const db = getFirestore(app);
+const auth = getAuth(app);
 
 const form = document.getElementById("book-form");
 const titleInput = document.getElementById("book-title");
@@ -31,17 +32,12 @@ const statusMessage = document.getElementById("status-message");
 const bookCount = document.getElementById("book-count");
 const authStatus = document.getElementById("auth-status");
 const userNameLabel = document.getElementById("user-name");
-const firebaseConfigForm = document.getElementById("firebase-config-form");
-const firebaseConfigInput = document.getElementById("firebase-config-json");
 const loginForm = document.getElementById("login-form");
 const signupForm = document.getElementById("signup-form");
 const logoutButton = document.getElementById("logout-button");
 const authForms = document.querySelector(".auth-forms");
 const appSections = document.querySelectorAll("[data-auth-required]");
 
-let app;
-let db;
-let auth;
 let booksUnsubscribe = null;
 let currentUser = null;
 
@@ -53,24 +49,6 @@ function setStatus(message, type = "") {
 function setAuthStatus(message, type = "") {
   authStatus.textContent = message;
   authStatus.className = `status-message ${type}`.trim();
-}
-
-function getStoredFirebaseConfig() {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? JSON.parse(raw) : null;
-  } catch (error) {
-    console.error("Firebase設定の読み込みに失敗しました。", error);
-    return null;
-  }
-}
-
-function saveFirebaseConfig(config) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(config));
-}
-
-function hasValidFirebaseConfig(config) {
-  return config && typeof config === "object" && Object.values(config).every((value) => value && !String(value).includes("YOUR_"));
 }
 
 function toggleAuthRequiredSections(isLoggedIn) {
@@ -138,7 +116,7 @@ function renderBooks(books) {
     toggleButton.textContent = book.read ? "未読に戻す" : "読んだにする";
     toggleButton.addEventListener("click", async () => {
       try {
-        const bookRef = doc(collection(db, "users", currentUser.uid, "readingRecords"), book.id);
+        const bookRef = doc(db, "users", currentUser.uid, "readingRecords", book.id);
         await updateDoc(bookRef, {
           read: !book.read,
           updatedAt: serverTimestamp(),
@@ -155,7 +133,7 @@ function renderBooks(books) {
     deleteButton.textContent = "削除";
     deleteButton.addEventListener("click", async () => {
       try {
-        const bookRef = doc(collection(db, "users", currentUser.uid, "readingRecords"), book.id);
+        const bookRef = doc(db, "users", currentUser.uid, "readingRecords", book.id);
         await deleteDoc(bookRef);
         setStatus(`${book.title}を削除しました。`, "success");
       } catch (error) {
@@ -241,47 +219,7 @@ async function handleAuthStateChanged(user) {
   setStatus("", "");
 }
 
-async function initializeFirebase() {
-  const storedConfig = getStoredFirebaseConfig();
-
-  if (!hasValidFirebaseConfig(storedConfig)) {
-    setStatus("Firebase設定を保存してください。", "error");
-    toggleAuthRequiredSections(false);
-    setAuthStatus("", "");
-    return;
-  }
-
-  toggleAuthRequiredSections(false);
-  app = initializeApp(storedConfig);
-  db = getFirestore(app);
-  auth = getAuth(app);
-
-  onAuthStateChanged(auth, handleAuthStateChanged);
-
-  firebaseConfigInput.value = JSON.stringify(storedConfig, null, 2);
-}
-
-firebaseConfigForm.addEventListener("submit", async (event) => {
-  event.preventDefault();
-
-  let config = null;
-
-  try {
-    config = JSON.parse(firebaseConfigInput.value);
-  } catch (error) {
-    setStatus("Firebase設定のJSONを正しい形式で入力してください。", "error");
-    return;
-  }
-
-  if (!hasValidFirebaseConfig(config)) {
-    setStatus("Firebase設定の値が不完全です。", "error");
-    return;
-  }
-
-  saveFirebaseConfig(config);
-  setStatus("Firebase設定を保存しました。ページを再読み込みしてログインしてください。", "success");
-  window.location.reload();
-});
+onAuthStateChanged(auth, handleAuthStateChanged);
 
 loginForm.addEventListener("submit", async (event) => {
   event.preventDefault();
@@ -380,4 +318,5 @@ form.addEventListener("submit", async (event) => {
 });
 
 resetBooksView();
-initializeFirebase();
+toggleAuthRequiredSections(false);
+userNameLabel.textContent = "未ログイン";
