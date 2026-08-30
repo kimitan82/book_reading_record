@@ -1,2 +1,2 @@
-# book_reading_record
+# recored_reading_books
 読書の記録をするアプリです。
