@@ -12,6 +12,7 @@ import {
   deleteDoc,
   doc,
   getDoc,
+  getDocs,
   getFirestore,
   onSnapshot,
   orderBy,
@@ -175,6 +176,29 @@ function renderBooks(books) {
   });
 }
 
+async function loadBooksOnce(userId) {
+  if (!db || !userId) {
+    return;
+  }
+
+  try {
+    const readingRecordsCollection = collection(db, "users", userId, "readingRecords");
+    const readingRecordsQuery = query(readingRecordsCollection, orderBy("createdAt", "desc"));
+    const snapshot = await getDocs(readingRecordsQuery);
+
+    const books = snapshot.docs.map((docSnapshot) => ({
+      id: docSnapshot.id,
+      ...docSnapshot.data(),
+      read: Boolean(docSnapshot.data().read),
+    }));
+
+    renderBooks(books);
+  } catch (error) {
+    console.error(error);
+    setStatus("Firebaseからの読書記録の読み込みに失敗しました。", "error");
+  }
+}
+
 function subscribeToBooks(userId) {
   if (booksUnsubscribe) {
     booksUnsubscribe();
@@ -257,6 +281,7 @@ async function handleAuthStateChanged(user) {
   userNameLabel.textContent = user.displayName || user.email?.split("@")[0] || "ユーザー";
   void ensureUserProfile(user);
   try {
+    await loadBooksOnce(user.uid);
     subscribeToBooks(user.uid);
   } catch (error) {
     console.warn("読書記録の購読に失敗しました。", error);
@@ -277,6 +302,7 @@ async function showLoggedInState(user) {
   userNameLabel.textContent = user.displayName || user.email?.split("@")[0] || "ユーザー";
   void ensureUserProfile(user);
   try {
+    await loadBooksOnce(user.uid);
     subscribeToBooks(user.uid);
   } catch (error) {
     console.warn("読書記録の購読に失敗しました。", error);
