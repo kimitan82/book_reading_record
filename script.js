@@ -1,6 +1,7 @@
 import app from "./firebase.js";
 import {
   getAuth,
+  getRedirectResult,
   GoogleAuthProvider,
   onAuthStateChanged,
   signInWithRedirect,
@@ -288,6 +289,24 @@ async function handleAuthStateChanged(user) {
 }
 
 onAuthStateChanged(auth, handleAuthStateChanged);
+
+async function handleGoogleRedirectResult() {
+  try {
+    const result = await getRedirectResult(auth);
+
+    if (result?.user) {
+      setAuthStatus(
+        `Googleでログインしました。${result.user.displayName || result.user.email || "ユーザー"}`,
+        "success"
+      );
+    }
+  } catch (error) {
+    console.error(error);
+    setAuthStatus(`Googleログインに失敗しました。${getAuthErrorMessage(error)}`, "error");
+  }
+}
+
+void handleGoogleRedirectResult();
 
 async function showLoggedInState(user) {
   if (!user) {
