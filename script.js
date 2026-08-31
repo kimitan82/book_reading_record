@@ -307,6 +307,8 @@ async function showLoggedInState(user) {
 }
 
 googleLoginButton.addEventListener("click", async () => {
+  setAuthStatus("Googleアカウント選択画面を表示します。使用するアカウントを選択してください。", "");
+
   try {
     const provider = new GoogleAuthProvider();
     provider.setCustomParameters({
