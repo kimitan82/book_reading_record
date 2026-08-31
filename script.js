@@ -84,6 +84,18 @@ function getAuthErrorMessage(error) {
   }
 }
 
+function getFirestoreErrorMessage(error, action) {
+  if (error?.code === "permission-denied") {
+    return `${action}権限がありません。ログイン状態を確認してから再試行してください。`;
+  }
+
+  if (error?.code === "failed-precondition") {
+    return `${action}に必要なFirebaseの設定が完了していません。`;
+  }
+
+  return `${action}に失敗しました。通信状態を確認して再試行してください。`;
+}
+
 function toggleAuthRequiredSections(isLoggedIn) {
   appSections.forEach((element) => {
     element.classList.toggle("hidden", !isLoggedIn);
@@ -204,7 +216,7 @@ async function loadBooksOnce(userId) {
     renderBooks(books);
   } catch (error) {
     console.error(error);
-    setStatus("Firebaseからの読書記録の読み込みに失敗しました。", "error");
+    setStatus(getFirestoreErrorMessage(error, "読書記録の読み込み"), "error");
   }
 }
 
@@ -229,7 +241,7 @@ function subscribeToBooks(userId) {
     },
     (error) => {
       console.error(error);
-      setStatus("Firebaseからの読書記録の読み込みに失敗しました。", "error");
+      setStatus(getFirestoreErrorMessage(error, "読書記録の読み込み"), "error");
     }
   );
 }
@@ -390,7 +402,7 @@ signupForm.addEventListener("submit", async (event) => {
       console.warn("ユーザープロファイルの保存に失敗しましたが、ログイン処理は継続します。", profileError);
     }
 
-    showLoggedInState(userCredential.user);
+    await showLoggedInState(userCredential.user);
     setAuthStatus("新規登録に成功しました。", "success");
     signupForm.reset();
   } catch (error) {
@@ -415,7 +427,9 @@ logoutButton.addEventListener("click", async () => {
 form.addEventListener("submit", async (event) => {
   event.preventDefault();
 
-  if (!currentUser || !db) {
+  const user = auth.currentUser;
+
+  if (!user || !db) {
     setStatus("ログインしてください。", "error");
     return;
   }
@@ -430,7 +444,7 @@ form.addEventListener("submit", async (event) => {
   }
 
   try {
-    const readingRecordsCollection = collection(db, "users", currentUser.uid, "readingRecords");
+    const readingRecordsCollection = collection(db, "users", user.uid, "readingRecords");
     await addDoc(readingRecordsCollection, {
       title,
       author: author || "著者未記入",
@@ -444,7 +458,7 @@ form.addEventListener("submit", async (event) => {
     setStatus(`${title}を登録しました。`, "success");
   } catch (error) {
     console.error(error);
-    setStatus("読書記録の登録に失敗しました。", "error");
+    setStatus(getFirestoreErrorMessage(error, "読書記録の登録"), "error");
   }
 });
 
