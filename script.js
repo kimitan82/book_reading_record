@@ -5,6 +5,7 @@ import {
   getRedirectResult,
   GoogleAuthProvider,
   onAuthStateChanged,
+  signInWithPopup,
   setPersistence,
   signInWithRedirect,
   signOut,
@@ -291,8 +292,6 @@ async function handleAuthStateChanged(user) {
 }
 
 async function initializeAuthentication() {
-  onAuthStateChanged(auth, handleAuthStateChanged);
-
   try {
     await setPersistence(auth, browserLocalPersistence);
     const result = await getRedirectResult(auth);
@@ -303,11 +302,12 @@ async function initializeAuthentication() {
         "success"
       );
     }
-
   } catch (error) {
     console.error(error);
     setAuthStatus(`Googleログインに失敗しました。${getAuthErrorMessage(error)}`, "error");
   }
+
+  onAuthStateChanged(auth, handleAuthStateChanged);
 }
 
 void initializeAuthentication();
@@ -340,7 +340,16 @@ googleLoginButton.addEventListener("click", async () => {
       prompt: "select_account",
     });
 
-    await signInWithRedirect(auth, provider);
+    const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+
+    if (isMobile) {
+      await signInWithRedirect(auth, provider);
+      return;
+    }
+
+    const result = await signInWithPopup(auth, provider);
+    const user = result.user;
+    setAuthStatus(`Googleでログインしました。${user.displayName || user.email || "ユーザー"}`, "success");
   } catch (error) {
     console.error(error);
     setAuthStatus(`Googleログインに失敗しました。${getAuthErrorMessage(error)}`, "error");
