@@ -333,7 +333,7 @@ loginForm.addEventListener("submit", async (event) => {
 
   try {
     const userCredential = await signInWithEmailAndPassword(auth, email, password);
-    showLoggedInState(userCredential.user);
+    await showLoggedInState(userCredential.user);
     setAuthStatus("ログインに成功しました。", "success");
     loginForm.reset();
   } catch (error) {
