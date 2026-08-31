@@ -1,9 +1,9 @@
 import app from "./firebase.js";
 import {
-  createUserWithEmailAndPassword,
   getAuth,
+  GoogleAuthProvider,
   onAuthStateChanged,
-  signInWithEmailAndPassword,
+  signInWithPopup,
   signOut,
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import {
@@ -35,8 +35,7 @@ const statusMessage = document.getElementById("status-message");
 const bookCount = document.getElementById("book-count");
 const authStatus = document.getElementById("auth-status");
 const userNameLabel = document.getElementById("user-name");
-const loginForm = document.getElementById("login-form");
-const signupForm = document.getElementById("signup-form");
+const googleLoginButton = document.getElementById("google-login-button");
 const logoutButton = document.getElementById("logout-button");
 const authForms = document.querySelector(".auth-forms");
 const appSections = document.querySelectorAll("[data-auth-required]");
@@ -58,18 +57,14 @@ function getAuthErrorMessage(error) {
   const code = error?.code || "";
 
   switch (code) {
-    case "auth/email-already-in-use":
-      return "このメールアドレスは既に登録されています。";
-    case "auth/invalid-email":
-      return "メールアドレスの形式が正しくありません。";
-    case "auth/weak-password":
-      return "パスワードは6文字以上で入力してください。";
-    case "auth/user-not-found":
-      return "アカウントが見つかりません。メールアドレスを確認してください。";
-    case "auth/wrong-password":
-      return "パスワードが違います。";
-    case "auth/too-many-requests":
-      return "ログイン試行回数が多いためしばらく待ってから再試行してください。";
+    case "auth/popup-closed-by-user":
+      return "Googleログインがキャンセルされました。";
+    case "auth/cancelled-popup-request":
+      return "Googleログインの要求が取り消されました。";
+    case "auth/popup-blocked":
+      return "ポップアップがブロックされたためログインできませんでした。";
+    case "auth/account-exists-with-different-credential":
+      return "このGoogleアカウントは既に別の認証方式で登録されています。";
     default:
       return error?.message || "認証に失敗しました。";
   }
@@ -311,64 +306,19 @@ async function showLoggedInState(user) {
   setStatus("", "");
 }
 
-loginForm.addEventListener("submit", async (event) => {
-  event.preventDefault();
-
-  const email = document.getElementById("login-email").value.trim();
-  const password = document.getElementById("login-password").value;
-
-  if (!email || !password) {
-    setAuthStatus("メールアドレスとパスワードを入力してください。", "error");
-    return;
-  }
-
+googleLoginButton.addEventListener("click", async () => {
   try {
-    const userCredential = await signInWithEmailAndPassword(auth, email, password);
-    showLoggedInState(userCredential.user);
-    setAuthStatus("ログインに成功しました。", "success");
-    loginForm.reset();
+    const provider = new GoogleAuthProvider();
+    provider.setCustomParameters({
+      prompt: "select_account",
+    });
+
+    const result = await signInWithPopup(auth, provider);
+    const user = result.user;
+    setAuthStatus(`Googleでログインしました。${user.displayName || user.email || "ユーザー"}`, "success");
   } catch (error) {
     console.error(error);
-    setAuthStatus(`ログインに失敗しました。${getAuthErrorMessage(error)}`, "error");
-  }
-});
-
-signupForm.addEventListener("submit", async (event) => {
-  event.preventDefault();
-
-  const name = document.getElementById("signup-name").value.trim();
-  const email = document.getElementById("signup-email").value.trim();
-  const password = document.getElementById("signup-password").value;
-
-  if (!name || !email || !password) {
-    setAuthStatus("名前、メールアドレス、パスワードを入力してください。", "error");
-    return;
-  }
-
-  try {
-    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-    const userDocRef = doc(db, "users", userCredential.user.uid);
-
-    try {
-      await setDoc(
-        userDocRef,
-        {
-          name,
-          createdAt: serverTimestamp(),
-          updatedAt: serverTimestamp(),
-        },
-        { merge: true }
-      );
-    } catch (profileError) {
-      console.warn("ユーザープロファイルの保存に失敗しましたが、ログイン処理は継続します。", profileError);
-    }
-
-    showLoggedInState(userCredential.user);
-    setAuthStatus("新規登録に成功しました。", "success");
-    signupForm.reset();
-  } catch (error) {
-    console.error(error);
-    setAuthStatus(`新規登録に失敗しました。${getAuthErrorMessage(error)}`, "error");
+    setAuthStatus(`Googleログインに失敗しました。${getAuthErrorMessage(error)}`, "error");
   }
 });
 

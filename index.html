@@ -20,40 +20,9 @@
           <h2>ログイン</h2>
 
           <div class="auth-forms">
-            <form id="signup-form" class="stacked-form">
-              <h3>新規登録</h3>
-              <div class="field">
-                <label for="signup-name">名前</label>
-                <input id="signup-name" type="text" maxlength="50" placeholder="例: 山田太郎" required />
-              </div>
-
-              <div class="field">
-                <label for="signup-email">メールアドレス</label>
-                <input id="signup-email" type="email" maxlength="255" placeholder="example@email.com" required />
-              </div>
-
-              <div class="field">
-                <label for="signup-password">パスワード</label>
-                <input id="signup-password" type="password" minlength="6" maxlength="128" placeholder="6文字以上" required />
-              </div>
-
-              <button type="submit" class="primary-button">新規登録</button>
-            </form>
-
-            <form id="login-form" class="stacked-form">
-              <h3>ログイン</h3>
-              <div class="field">
-                <label for="login-email">メールアドレス</label>
-                <input id="login-email" type="email" maxlength="255" placeholder="example@email.com" required />
-              </div>
-
-              <div class="field">
-                <label for="login-password">パスワード</label>
-                <input id="login-password" type="password" maxlength="128" placeholder="パスワード" required />
-              </div>
-
-              <button type="submit" class="primary-button">ログイン</button>
-            </form>
+            <div class="auth-actions">
+              <button id="google-login-button" type="button" class="primary-button">Googleでログイン</button>
+            </div>
           </div>
 
           <p id="auth-status" class="status-message" aria-live="polite"></p>
