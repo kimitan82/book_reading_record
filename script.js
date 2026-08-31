@@ -1,9 +1,11 @@
 import app from "./firebase.js";
 import {
   getAuth,
+  browserLocalPersistence,
   getRedirectResult,
   GoogleAuthProvider,
   onAuthStateChanged,
+  setPersistence,
   signInWithRedirect,
   signOut,
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
@@ -288,10 +290,11 @@ async function handleAuthStateChanged(user) {
   setStatus("", "");
 }
 
-onAuthStateChanged(auth, handleAuthStateChanged);
+async function initializeAuthentication() {
+  onAuthStateChanged(auth, handleAuthStateChanged);
 
-async function handleGoogleRedirectResult() {
   try {
+    await setPersistence(auth, browserLocalPersistence);
     const result = await getRedirectResult(auth);
 
     if (result?.user) {
@@ -300,13 +303,14 @@ async function handleGoogleRedirectResult() {
         "success"
       );
     }
+
   } catch (error) {
     console.error(error);
     setAuthStatus(`Googleログインに失敗しました。${getAuthErrorMessage(error)}`, "error");
   }
 }
 
-void handleGoogleRedirectResult();
+void initializeAuthentication();
 
 async function showLoggedInState(user) {
   if (!user) {
