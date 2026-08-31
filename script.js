@@ -3,7 +3,7 @@ import {
   getAuth,
   GoogleAuthProvider,
   onAuthStateChanged,
-  signInWithPopup,
+  signInWithRedirect,
   signOut,
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import {
@@ -65,6 +65,8 @@ function getAuthErrorMessage(error) {
       return "ポップアップがブロックされたためログインできませんでした。";
     case "auth/account-exists-with-different-credential":
       return "このGoogleアカウントは既に別の認証方式で登録されています。";
+    case "auth/unauthorized-domain":
+      return `このサイトのドメイン（${window.location.hostname}）がFirebaseで承認されていません。Firebase ConsoleのAuthentication > Settings > Authorized domainsに追加してください。`;
     default:
       return error?.message || "認証に失敗しました。";
   }
@@ -315,9 +317,7 @@ googleLoginButton.addEventListener("click", async () => {
       prompt: "select_account",
     });
 
-    const result = await signInWithPopup(auth, provider);
-    const user = result.user;
-    setAuthStatus(`Googleでログインしました。${user.displayName || user.email || "ユーザー"}`, "success");
+    await signInWithRedirect(auth, provider);
   } catch (error) {
     console.error(error);
     setAuthStatus(`Googleログインに失敗しました。${getAuthErrorMessage(error)}`, "error");
