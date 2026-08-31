@@ -3,6 +3,7 @@ import {
   createUserWithEmailAndPassword,
   getAuth,
   onAuthStateChanged,
+  sendPasswordResetEmail,
   signInWithEmailAndPassword,
   signOut,
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
@@ -37,6 +38,7 @@ const authStatus = document.getElementById("auth-status");
 const userNameLabel = document.getElementById("user-name");
 const loginForm = document.getElementById("login-form");
 const signupForm = document.getElementById("signup-form");
+const resetPasswordButton = document.getElementById("reset-password-button");
 const logoutButton = document.getElementById("logout-button");
 const authForms = document.querySelector(".auth-forms");
 const appSections = document.querySelectorAll("[data-auth-required]");
@@ -68,8 +70,15 @@ function getAuthErrorMessage(error) {
       return "アカウントが見つかりません。メールアドレスを確認してください。";
     case "auth/wrong-password":
       return "パスワードが違います。";
+    case "auth/invalid-credential":
+    case "auth/invalid-login-credentials":
+      return "メールアドレスまたはパスワードが正しくありません。";
+    case "auth/user-disabled":
+      return "このアカウントは無効になっています。Firebase Consoleで状態を確認してください。";
+    case "auth/operation-not-allowed":
+      return "メールアドレスとパスワードによるログインがFirebaseで有効になっていません。";
     case "auth/too-many-requests":
-      return "ログイン試行回数が多いためしばらく待ってから再試行してください。";
+      return "ログイン試行回数が多いため、しばらく待ってから再試行してください。";
     default:
       return error?.message || "認証に失敗しました。";
   }
@@ -330,6 +339,24 @@ loginForm.addEventListener("submit", async (event) => {
   } catch (error) {
     console.error(error);
     setAuthStatus(`ログインに失敗しました。${getAuthErrorMessage(error)}`, "error");
+  }
+});
+
+resetPasswordButton.addEventListener("click", async () => {
+  const email = document.getElementById("login-email").value.trim();
+
+  if (!email) {
+    setAuthStatus("パスワードを再設定するメールアドレスを入力してください。", "error");
+    document.getElementById("login-email").focus();
+    return;
+  }
+
+  try {
+    await sendPasswordResetEmail(auth, email);
+    setAuthStatus("パスワード再設定用のメールを送信しました。メールをご確認ください。", "success");
+  } catch (error) {
+    console.error(error);
+    setAuthStatus(`パスワード再設定に失敗しました。${getAuthErrorMessage(error)}`, "error");
   }
 });
 
