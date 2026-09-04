@@ -322,7 +322,7 @@ async function handleAuthStateChanged(user) {
   } catch (error) {
     console.warn("読書記録の購読に失敗しました。", error);
   }
-  setAuthStatus(`ログイン中: ${user.email}`, "success");
+  setAuthStatus(`ログイン中: ${user.email || "メールアドレス未設定"}`, "success");
   setStatus("", "");
 }
 
@@ -343,7 +343,7 @@ async function showLoggedInState(user) {
   } catch (error) {
     console.warn("読書記録の購読に失敗しました。", error);
   }
-  setAuthStatus(`ログイン中: ${user.email}`, "success");
+  setAuthStatus(`ログイン中: ${user.email || "メールアドレス未設定"}`, "success");
   setStatus("", "");
 }
 
