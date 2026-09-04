@@ -13,7 +13,6 @@ import {
   deleteDoc,
   doc,
   getDoc,
-  getDocsFromServer,
   initializeFirestore,
   onSnapshot,
   orderBy,
@@ -296,20 +295,6 @@ function subscribeToBooks(userId) {
     }
   );
 
-  void getDocsFromServer(readingRecordsQuery)
-    .then((snapshot) => {
-      const books = snapshot.docs.map((docSnapshot) => ({
-        id: docSnapshot.id,
-        ...docSnapshot.data(),
-        read: Boolean(docSnapshot.data().read),
-      }));
-      renderBooks(books);
-      setStatus("", "");
-    })
-    .catch((error) => {
-      console.error(error);
-      setStatus(getFirestoreErrorMessage(error, "読書記録の読み込み"), "error");
-    });
 }
 
 async function ensureUserProfile(user) {
