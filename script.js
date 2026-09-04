@@ -20,6 +20,7 @@ import {
   query,
   serverTimestamp,
   setDoc,
+  Timestamp,
   updateDoc,
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
@@ -449,7 +450,7 @@ form.addEventListener("submit", async (event) => {
       title,
       author: author || "著者未記入",
       read: false,
-      createdAt: serverTimestamp(),
+      createdAt: Timestamp.now(),
       updatedAt: serverTimestamp(),
     });
 
