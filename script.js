@@ -271,7 +271,7 @@ async function loadBooksOnce(userId) {
   }
 }
 
-function subscribeToBooks(userId) {
+async function subscribeToBooks(userId) {
   if (booksUnsubscribe) {
     booksUnsubscribe();
     booksUnsubscribe = null;
@@ -279,10 +279,30 @@ function subscribeToBooks(userId) {
 
   const readingRecordsCollection = getReadingRecordsCollection({ uid: userId });
   const readingRecordsQuery = query(readingRecordsCollection, orderBy("createdAt", "desc"));
+  let serverSnapshotLoaded = false;
+
+  try {
+    const snapshot = await getDocsFromServer(readingRecordsQuery);
+    const books = snapshot.docs.map((docSnapshot) => ({
+      id: docSnapshot.id,
+      ...docSnapshot.data(),
+      read: Boolean(docSnapshot.data().read),
+    }));
+    renderBooks(books);
+    serverSnapshotLoaded = true;
+  } catch (error) {
+    console.error(error);
+    setStatus(getFirestoreErrorMessage(error, "読書記録の読み込み"), "error");
+  }
 
   booksUnsubscribe = onSnapshot(
     readingRecordsQuery,
+    { includeMetadataChanges: true },
     (snapshot) => {
+      if (snapshot.metadata.fromCache && serverSnapshotLoaded) {
+        return;
+      }
+
       const books = snapshot.docs.map((docSnapshot) => ({
         id: docSnapshot.id,
         ...docSnapshot.data(),
