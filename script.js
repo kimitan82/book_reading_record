@@ -37,6 +37,7 @@ const statusMessage = document.getElementById("status-message");
 const bookCount = document.getElementById("book-count");
 const authStatus = document.getElementById("auth-status");
 const userNameLabel = document.getElementById("user-name");
+const userIdLabel = document.getElementById("user-id");
 const loginForm = document.getElementById("login-form");
 const signupForm = document.getElementById("signup-form");
 const resetPasswordButton = document.getElementById("reset-password-button");
@@ -101,6 +102,22 @@ function getReadingRecordsCollection(user) {
   return collection(db, "users", user.uid, "readingRecords");
 }
 
+function formatFirestoreTimestamp(timestamp) {
+  if (!timestamp) {
+    return "未確定";
+  }
+
+  const date = typeof timestamp.toDate === "function" ? timestamp.toDate() : new Date(timestamp);
+  if (Number.isNaN(date.getTime())) {
+    return "不明";
+  }
+
+  return new Intl.DateTimeFormat("ja-JP", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(date);
+}
+
 function toggleAuthRequiredSections(isLoggedIn) {
   appSections.forEach((element) => {
     element.classList.toggle("hidden", !isLoggedIn);
@@ -150,8 +167,15 @@ function renderBooks(books) {
     author.className = "book-author";
     author.textContent = book.author || "著者未記入";
 
+    const metadata = document.createElement("p");
+    metadata.className = "book-metadata";
+    metadata.textContent =
+      `作成日時: ${formatFirestoreTimestamp(book.createdAt)} / ` +
+      `更新日時: ${formatFirestoreTimestamp(book.updatedAt)}`;
+
     info.appendChild(title);
     info.appendChild(author);
+    info.appendChild(metadata);
 
     const statusChip = document.createElement("span");
     statusChip.className = `status-chip ${book.read ? "done" : "todo"}`;
@@ -308,6 +332,7 @@ async function handleAuthStateChanged(user) {
     toggleAuthRequiredSections(false);
     resetBooksView();
     userNameLabel.textContent = "未ログイン";
+    userIdLabel.textContent = "Firebase UID: 未ログイン";
     setStatus("ログインしてください。", "");
     setAuthStatus("", "");
     return;
@@ -315,6 +340,7 @@ async function handleAuthStateChanged(user) {
 
   toggleAuthRequiredSections(true);
   userNameLabel.textContent = user.displayName || user.email?.split("@")[0] || "ユーザー";
+  userIdLabel.textContent = `Firebase UID: ${user.uid}`;
   void ensureUserProfile(user);
   try {
     await loadBooksOnce(user.uid);
@@ -336,6 +362,7 @@ async function showLoggedInState(user) {
   currentUser = user;
   toggleAuthRequiredSections(true);
   userNameLabel.textContent = user.displayName || user.email?.split("@")[0] || "ユーザー";
+  userIdLabel.textContent = `Firebase UID: ${user.uid}`;
   void ensureUserProfile(user);
   try {
     await loadBooksOnce(user.uid);
@@ -432,6 +459,7 @@ logoutButton.addEventListener("click", async () => {
     toggleAuthRequiredSections(false);
     resetBooksView();
     userNameLabel.textContent = "未ログイン";
+    userIdLabel.textContent = "Firebase UID: 未ログイン";
     setAuthStatus("ログアウトしました。", "success");
   } catch (error) {
     console.error(error);

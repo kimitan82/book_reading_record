@@ -258,6 +258,13 @@ button {
   color: var(--done-text);
 }
 
+.user-id {
+  margin: -8px 0 18px;
+  color: var(--muted);
+  font-size: 0.8rem;
+  overflow-wrap: anywhere;
+}
+
 .actions {
   display: flex;
   gap: 8px;
@@ -298,6 +305,13 @@ button {
   margin: 4px 0 0;
   color: var(--muted);
   font-size: 0.92rem;
+}
+
+.book-metadata {
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-size: 0.78rem;
+  line-height: 1.5;
 }
 
 .status-chip {
