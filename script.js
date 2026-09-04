@@ -13,7 +13,7 @@ import {
   deleteDoc,
   doc,
   getDoc,
-  getDocs,
+  getDocsFromServer,
   initializeFirestore,
   onSnapshot,
   orderBy,
@@ -256,7 +256,7 @@ async function loadBooksOnce(userId) {
   try {
     const readingRecordsCollection = getReadingRecordsCollection({ uid: userId });
     const readingRecordsQuery = query(readingRecordsCollection, orderBy("createdAt", "desc"));
-    const snapshot = await getDocs(readingRecordsQuery);
+    const snapshot = await getDocsFromServer(readingRecordsQuery);
 
     const books = snapshot.docs.map((docSnapshot) => ({
       id: docSnapshot.id,
