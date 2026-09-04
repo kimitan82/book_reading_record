@@ -342,14 +342,9 @@ async function handleAuthStateChanged(user) {
   userNameLabel.textContent = user.displayName || user.email?.split("@")[0] || "ユーザー";
   userIdLabel.textContent = `Firebase UID: ${user.uid}`;
   void ensureUserProfile(user);
-  try {
-    await loadBooksOnce(user.uid);
-    subscribeToBooks(user.uid);
-  } catch (error) {
-    console.warn("読書記録の購読に失敗しました。", error);
-  }
   setAuthStatus(`ログイン中: ${user.email || "メールアドレス未設定"}`, "success");
   setStatus("", "");
+  subscribeToBooks(user.uid);
 }
 
 onAuthStateChanged(auth, handleAuthStateChanged);
@@ -364,14 +359,9 @@ async function showLoggedInState(user) {
   userNameLabel.textContent = user.displayName || user.email?.split("@")[0] || "ユーザー";
   userIdLabel.textContent = `Firebase UID: ${user.uid}`;
   void ensureUserProfile(user);
-  try {
-    await loadBooksOnce(user.uid);
-    subscribeToBooks(user.uid);
-  } catch (error) {
-    console.warn("読書記録の購読に失敗しました。", error);
-  }
   setAuthStatus(`ログイン中: ${user.email || "メールアドレス未設定"}`, "success");
   setStatus("", "");
+  subscribeToBooks(user.uid);
 }
 
 loginForm.addEventListener("submit", async (event) => {
