@@ -87,6 +87,10 @@ function getAuthErrorMessage(error) {
 }
 
 function getFirestoreErrorMessage(error, action) {
+  if (error?.code === "unavailable") {
+    return `${action}できません。ネットワーク接続を確認して再試行してください。`;
+  }
+
   if (error?.code === "permission-denied") {
     return `${action}権限がありません。ログイン状態を確認してから再試行してください。`;
   }
@@ -322,7 +326,9 @@ async function ensureUserProfile(user) {
     const userData = userDoc.exists() ? userDoc.data() : { name: fallbackName };
     userNameLabel.textContent = userData.name || fallbackName;
   } catch (error) {
-    console.warn("ユーザープロファイルの取得に失敗しました。オフライン時でもログインを継続します。", error);
+    if (error?.code !== "unavailable") {
+      console.warn("ユーザープロファイルの取得に失敗しました。オフライン時でもログインを継続します。", error);
+    }
     userNameLabel.textContent = fallbackName;
   }
 }
@@ -350,6 +356,16 @@ async function handleAuthStateChanged(user) {
 }
 
 onAuthStateChanged(auth, handleAuthStateChanged);
+
+window.addEventListener("online", () => {
+  const user = auth.currentUser;
+  if (!user) {
+    return;
+  }
+
+  subscribeToBooks(user.uid);
+  void ensureUserProfile(user);
+});
 
 async function showLoggedInState(user) {
   if (!user) {
