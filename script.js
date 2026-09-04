@@ -97,6 +97,10 @@ function getFirestoreErrorMessage(error, action) {
   return `${action}に失敗しました。通信状態を確認して再試行してください。`;
 }
 
+function getReadingRecordsCollection(user) {
+  return collection(db, "users", user.uid, "readingRecords");
+}
+
 function toggleAuthRequiredSections(isLoggedIn) {
   appSections.forEach((element) => {
     element.classList.toggle("hidden", !isLoggedIn);
@@ -162,7 +166,12 @@ function renderBooks(books) {
     toggleButton.textContent = book.read ? "未読に戻す" : "読んだにする";
     toggleButton.addEventListener("click", async () => {
       try {
-        const bookRef = doc(db, "users", currentUser.uid, "readingRecords", book.id);
+        const user = auth.currentUser;
+        if (!user) {
+          setStatus("ログイン状態を確認してから再試行してください。", "error");
+          return;
+        }
+        const bookRef = doc(getReadingRecordsCollection(user), book.id);
         await updateDoc(bookRef, {
           read: !book.read,
           updatedAt: serverTimestamp(),
@@ -179,7 +188,12 @@ function renderBooks(books) {
     deleteButton.textContent = "削除";
     deleteButton.addEventListener("click", async () => {
       try {
-        const bookRef = doc(db, "users", currentUser.uid, "readingRecords", book.id);
+        const user = auth.currentUser;
+        if (!user) {
+          setStatus("ログイン状態を確認してから再試行してください。", "error");
+          return;
+        }
+        const bookRef = doc(getReadingRecordsCollection(user), book.id);
         await deleteDoc(bookRef);
         setStatus(`${book.title}を削除しました。`, "success");
       } catch (error) {
@@ -204,7 +218,7 @@ async function loadBooksOnce(userId) {
   }
 
   try {
-    const readingRecordsCollection = collection(db, "users", userId, "readingRecords");
+    const readingRecordsCollection = getReadingRecordsCollection({ uid: userId });
     const readingRecordsQuery = query(readingRecordsCollection, orderBy("createdAt", "desc"));
     const snapshot = await getDocs(readingRecordsQuery);
 
@@ -227,7 +241,7 @@ function subscribeToBooks(userId) {
     booksUnsubscribe = null;
   }
 
-  const readingRecordsCollection = collection(db, "users", userId, "readingRecords");
+  const readingRecordsCollection = getReadingRecordsCollection({ uid: userId });
   const readingRecordsQuery = query(readingRecordsCollection, orderBy("createdAt", "desc"));
 
   booksUnsubscribe = onSnapshot(
@@ -445,7 +459,7 @@ form.addEventListener("submit", async (event) => {
   }
 
   try {
-    const readingRecordsCollection = collection(db, "users", user.uid, "readingRecords");
+    const readingRecordsCollection = getReadingRecordsCollection(user);
     await addDoc(readingRecordsCollection, {
       title,
       author: author || "著者未記入",
