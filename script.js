@@ -99,6 +99,8 @@ function getFirestoreErrorMessage(error, action) {
 }
 
 function getReadingRecordsCollection(user) {
+  // ブラウザ間で、この「user.uid」の文字列が1文字も違わず完全に一致するか確認する
+  console.log("現在アクセスしているUID:", user?.uid); 
   return collection(db, "users", user.uid, "readingRecords");
 }
 
