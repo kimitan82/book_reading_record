@@ -327,8 +327,15 @@ async function importBooksFromCsv() {
     if (rows.length < 2) {
       throw new Error("CSVに読み込むデータがありません。");
     }
-    const headerIndex = new Map(rows[0].map((label, index) => [label.replace(/^\uFEFF/, "").trim(), index]));
-    const missingColumns = csvColumns.filter(([, label]) => !headerIndex.has(label));
+    const headerIndex = new Map();
+    rows[0].forEach((label, index) => {
+      const normalizedLabel = label.replace(/^\uFEFF/, "").trim();
+      const column = csvColumns.find(([, csvLabel]) => csvLabel === normalizedLabel);
+      if (column) {
+        headerIndex.set(column[0], index);
+      }
+    });
+    const missingColumns = csvColumns.filter(([key]) => !headerIndex.has(key));
     if (missingColumns.length > 0) {
       throw new Error(`CSVに必要な列がありません: ${missingColumns.map(([, label]) => label).join("、")}`);
     }
