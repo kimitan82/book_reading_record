@@ -61,6 +61,15 @@ const appSections = document.querySelectorAll("[data-auth-required]");
 let booksUnsubscribe = null;
 let currentUser = null;
 
+numberInput?.addEventListener("keydown", (event) => {
+  if (event.key !== "Enter") {
+    return;
+  }
+
+  event.preventDefault();
+  courseInput?.focus();
+});
+
 function setStatus(message, type = "") {
   statusMessage.textContent = message;
   statusMessage.className = `status-message ${type}`.trim();
