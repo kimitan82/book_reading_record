@@ -75,6 +75,12 @@ function getXmlText(element, localName) {
   return [...element.children].find((child) => child.localName === localName)?.textContent.trim() || "";
 }
 
+function getResponsibilityStatement(item) {
+  const description = [...item.children].find((child) => child.localName === "description")?.textContent || "";
+  const responsibility = description.match(/責任表示：([^<]+)/)?.[1]?.trim();
+  return responsibility ? responsibility.replace(/\s*,\s*/g, " / ") : "";
+}
+
 async function lookupBookByIsbn() {
   const isbn = isbnInput?.value.replace(/[-\s]/g, "").trim();
 
@@ -113,6 +119,7 @@ async function lookupBookByIsbn() {
       .filter((child) => child.localName === "creator")
       .map((child) => child.textContent.trim())
       .filter(Boolean);
+    const responsibility = getResponsibilityStatement(item);
     const series = getXmlText(item, "seriesTitle");
     const publisher = getXmlText(item, "publisher");
 
@@ -123,7 +130,7 @@ async function lookupBookByIsbn() {
       seriesInput.value = series;
     }
     if (creators.length > 0) {
-      authorInput.value = creators[0];
+      authorInput.value = responsibility || creators.join(" / ");
     }
     if (publisher) {
       publisherInput.value = publisher;
