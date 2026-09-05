@@ -137,6 +137,39 @@ function normalizeIsbn(value) {
   return value.trim();
 }
 
+async function fetchBookMetadata(isbn) {
+  const endpoint = new URL("https://ndlsearch.ndl.go.jp/api/opensearch");
+  endpoint.searchParams.set("cnt", "1");
+  endpoint.searchParams.set("isbn", isbn.replace(/[-\s]/g, ""));
+  const response = await fetch(endpoint);
+
+  if (!response.ok) {
+    throw new Error(`NDL Search API returned ${response.status}`);
+  }
+
+  const xml = new DOMParser().parseFromString(await response.text(), "application/xml");
+  if (xml.querySelector("parsererror")) {
+    throw new Error("NDL Search API returned invalid XML");
+  }
+
+  const item = xml.getElementsByTagName("item")[0];
+  if (!item) {
+    return null;
+  }
+
+  const creators = [...item.children]
+    .filter((child) => child.localName === "creator")
+    .map((child) => child.textContent.trim())
+    .filter(Boolean);
+
+  return {
+    title: getXmlText(item, "title"),
+    series: getXmlText(item, "seriesTitle"),
+    author: getResponsibilityStatement(item) || creators.join(" / "),
+    publisher: getXmlText(item, "publisher"),
+  };
+}
+
 async function lookupBookByIsbn() {
   const isbn = isbnInput?.value.replace(/[-\s]/g, "").trim();
 
@@ -150,46 +183,23 @@ async function lookupBookByIsbn() {
   setStatus("ISBNから書誌情報を検索しています。", "");
 
   try {
-    const endpoint = new URL("https://ndlsearch.ndl.go.jp/api/opensearch");
-    endpoint.searchParams.set("cnt", "1");
-    endpoint.searchParams.set("isbn", isbn);
-    const response = await fetch(endpoint);
-
-    if (!response.ok) {
-      throw new Error(`NDL Search API returned ${response.status}`);
-    }
-
-    const xml = new DOMParser().parseFromString(await response.text(), "application/xml");
-    if (xml.querySelector("parsererror")) {
-      throw new Error("NDL Search API returned invalid XML");
-    }
-
-    const item = xml.getElementsByTagName("item")[0];
-    if (!item) {
+    const metadata = await fetchBookMetadata(isbn);
+    if (!metadata) {
       setStatus("該当する書誌情報が見つかりませんでした。", "error");
       return;
     }
 
-    const title = getXmlText(item, "title");
-    const creators = [...item.children]
-      .filter((child) => child.localName === "creator")
-      .map((child) => child.textContent.trim())
-      .filter(Boolean);
-    const responsibility = getResponsibilityStatement(item);
-    const series = getXmlText(item, "seriesTitle");
-    const publisher = getXmlText(item, "publisher");
-
-    if (title) {
-      titleInput.value = title;
+    if (metadata.title) {
+      titleInput.value = metadata.title;
     }
-    if (series) {
-      seriesInput.value = series;
+    if (metadata.series) {
+      seriesInput.value = metadata.series;
     }
-    if (creators.length > 0) {
-      authorInput.value = responsibility || creators.join(" / ");
+    if (metadata.author) {
+      authorInput.value = metadata.author;
     }
-    if (publisher) {
-      publisherInput.value = publisher;
+    if (metadata.publisher) {
+      publisherInput.value = metadata.publisher;
     }
     isbnInput.value = normalizeIsbn(isbn);
 
@@ -280,12 +290,13 @@ function parseCsv(text) {
   return rows;
 }
 
-function createBookFromCsvRow(row, headerIndex) {
+function createBookFromCsvRow(row, headerIndex, metadata = null) {
   const getValue = (key) => row[headerIndex.get(key)]?.trim() || "";
   const numberValue = getValue("number");
   const number = numberValue ? Number(numberValue) : null;
 
-  if (!getValue("title")) {
+  const title = getValue("title") || metadata?.title || "";
+  if (!title) {
     throw new Error("タイトルが空の行があります。");
   }
   if (numberValue && (!Number.isInteger(number) || number < 1)) {
@@ -296,10 +307,10 @@ function createBookFromCsvRow(row, headerIndex) {
   return {
     number,
     course: getValue("course"),
-    title: getValue("title"),
-    series: getValue("series"),
-    author: getValue("author") || "著者未記入",
-    publisher: getValue("publisher"),
+    title,
+    series: getValue("series") || metadata?.series || "",
+    author: getValue("author") || metadata?.author || "著者未記入",
+    publisher: getValue("publisher") || metadata?.publisher || "",
     isbn: normalizeIsbn(getValue("isbn")),
     read: readValue === "true" || readValue === "読んだ",
     readDate: getValue("readDate"),
@@ -391,14 +402,41 @@ async function importBooksFromCsv() {
     if (missingColumns.length > 0) {
       throw new Error(`CSVに必要な列がありません: ${missingColumns.map(([, label]) => label).join("、")}`);
     }
-    const books = rows.slice(1).map((row) => createBookFromCsvRow(row, headerIndex));
+    const skippedRows = [];
+    const books = [];
+    for (const [rowIndex, row] of rows.slice(1).entries()) {
+      const values = csvColumns.reduce((result, [key]) => {
+        result[key] = row[headerIndex.get(key)]?.trim() || "";
+        return result;
+      }, {});
+      const needsLookup = !values.title && !values.series && !values.author && !values.publisher && values.isbn;
+      let metadata = null;
+
+      if (needsLookup) {
+        try {
+          metadata = await fetchBookMetadata(values.isbn);
+        } catch (error) {
+          console.error(error);
+        }
+        if (!metadata || !metadata.title) {
+          skippedRows.push(rowIndex + 2);
+          continue;
+        }
+      }
+
+      books.push(createBookFromCsvRow(row, headerIndex, metadata));
+    }
+    if (books.length === 0) {
+      throw new Error("登録できる課題図書がありませんでした。");
+    }
     if (csvImportMode.value === "replace") {
       const existingDocuments = await getCurrentBooks(user);
       await Promise.all(existingDocuments.map((bookDocument) => deleteDoc(bookDocument.ref)));
     }
     await Promise.all(books.map((book) => addDoc(getReadingRecordsCollection(user), book)));
     csvFileInput.value = "";
-    setStatus(`${books.length}件の課題図書を${csvImportMode.value === "replace" ? "上書き" : "追加"}しました。`, "success");
+    const skippedMessage = skippedRows.length > 0 ? ` ISBNから情報を取得できなかった${skippedRows.length}件は登録しませんでした。` : "";
+    setStatus(`${books.length}件の課題図書を${csvImportMode.value === "replace" ? "上書き" : "追加"}しました。${skippedMessage}`, "success");
   } catch (error) {
     console.error(error);
     setStatus(error.message || getFirestoreErrorMessage(error, "CSVの読み込み"), "error");
