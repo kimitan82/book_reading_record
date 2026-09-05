@@ -43,6 +43,7 @@ const authorInput = document.getElementById("book-author");
 const publisherInput = document.getElementById("book-publisher");
 const isbnInput = document.getElementById("book-isbn");
 const readInput = document.getElementById("book-read");
+const readDateInput = document.getElementById("book-read-date");
 const commentInput = document.getElementById("book-comment");
 const bookList = document.getElementById("book-list");
 const statusMessage = document.getElementById("status-message");
@@ -200,6 +201,10 @@ function renderBooks(books) {
     comment.className = "book-comment";
     comment.textContent = book.comment || "コメント未記入";
 
+    const readDate = document.createElement("p");
+    readDate.className = "book-read-date";
+    readDate.textContent = `読んだ日: ${book.readDate || "未記入"}`;
+
     const metadata = document.createElement("p");
     metadata.className = "book-metadata";
     metadata.textContent =
@@ -210,6 +215,7 @@ function renderBooks(books) {
     info.appendChild(author);
     info.appendChild(details);
     info.appendChild(comment);
+    info.appendChild(readDate);
     info.appendChild(metadata);
 
     const statusChip = document.createElement("span");
@@ -231,14 +237,90 @@ function renderBooks(books) {
           return;
         }
         const bookRef = doc(getReadingRecordsCollection(user), book.id);
+        const nextRead = !book.read;
         await updateDoc(bookRef, {
-          read: !book.read,
+          read: nextRead,
+          readDate: nextRead ? book.readDate || new Date().toISOString().slice(0, 10) : "",
           updatedAt: serverTimestamp(),
         });
       } catch (error) {
         console.error(error);
         setStatus("読書状況の更新に失敗しました。", "error");
       }
+    });
+
+    const editButton = document.createElement("button");
+    editButton.type = "button";
+    editButton.className = "secondary-button";
+    editButton.textContent = "編集";
+    editButton.addEventListener("click", () => {
+      const editForm = document.createElement("div");
+      editForm.className = "book-edit-form";
+
+      const editStatusField = document.createElement("label");
+      editStatusField.textContent = "読書状況";
+      const editStatus = document.createElement("select");
+      editStatus.innerHTML = '<option value="false">未読</option><option value="true">読んだ</option>';
+      editStatus.value = String(Boolean(book.read));
+      editStatusField.appendChild(editStatus);
+
+      const editDateField = document.createElement("label");
+      editDateField.textContent = "読んだ日";
+      const editDate = document.createElement("input");
+      editDate.type = "date";
+      editDate.value = book.readDate || "";
+      editDateField.appendChild(editDate);
+
+      const editCommentField = document.createElement("label");
+      editCommentField.textContent = "コメント";
+      const editComment = document.createElement("textarea");
+      editComment.rows = 3;
+      editComment.maxLength = 1000;
+      editComment.value = book.comment || "";
+      editCommentField.appendChild(editComment);
+
+      const editActions = document.createElement("div");
+      editActions.className = "actions";
+      const saveButton = document.createElement("button");
+      saveButton.type = "button";
+      saveButton.className = "primary-button";
+      saveButton.textContent = "保存";
+      saveButton.addEventListener("click", async () => {
+        try {
+          const user = auth.currentUser;
+          if (!user) {
+            setStatus("ログイン状態を確認してから再試行してください。", "error");
+            return;
+          }
+          const bookRef = doc(getReadingRecordsCollection(user), book.id);
+          const isRead = editStatus.value === "true";
+          await updateDoc(bookRef, {
+            read: isRead,
+            readDate: isRead ? editDate.value : "",
+            comment: editComment.value.trim(),
+            updatedAt: serverTimestamp(),
+          });
+          setStatus(`${book.title}を更新しました。`, "success");
+        } catch (error) {
+          console.error(error);
+          setStatus("読書記録の更新に失敗しました。", "error");
+        }
+      });
+
+      const cancelButton = document.createElement("button");
+      cancelButton.type = "button";
+      cancelButton.className = "secondary-button";
+      cancelButton.textContent = "キャンセル";
+      cancelButton.addEventListener("click", () => editForm.remove());
+
+      editActions.appendChild(saveButton);
+      editActions.appendChild(cancelButton);
+      editForm.appendChild(editStatusField);
+      editForm.appendChild(editDateField);
+      editForm.appendChild(editCommentField);
+      editForm.appendChild(editActions);
+      info.appendChild(editForm);
+      editButton.disabled = true;
     });
 
     const deleteButton = document.createElement("button");
@@ -262,6 +344,7 @@ function renderBooks(books) {
     });
 
     actions.appendChild(toggleButton);
+    actions.appendChild(editButton);
     actions.appendChild(deleteButton);
 
     item.appendChild(info);
@@ -524,6 +607,7 @@ form.addEventListener("submit", async (event) => {
   const publisher = publisherInput.value.trim();
   const isbn = isbnInput.value.trim();
   const read = readInput.value === "true";
+  const readDate = readDateInput.value;
   const comment = commentInput.value.trim();
 
   if (!title) {
@@ -549,6 +633,7 @@ form.addEventListener("submit", async (event) => {
       publisher,
       isbn,
       read,
+      readDate: read ? readDate : "",
       comment,
       createdAt: Timestamp.now(),
       updatedAt: serverTimestamp(),

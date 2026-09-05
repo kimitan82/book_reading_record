@@ -160,6 +160,35 @@ button {
   min-height: 180px;
 }
 
+.book-edit-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 14px;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: #fff;
+}
+
+.book-edit-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  color: var(--text);
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.book-edit-form input,
+.book-edit-form textarea,
+.book-edit-form select {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
 .field input:focus,
 .field textarea:focus,
 .field select:focus {
@@ -322,6 +351,12 @@ button {
 .book-comment {
   color: var(--muted);
   white-space: pre-wrap;
+}
+
+.book-read-date {
+  margin: 6px 0 0;
+  color: var(--muted);
+  font-size: 0.86rem;
 }
 
 .book-metadata {
