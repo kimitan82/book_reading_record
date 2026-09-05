@@ -622,6 +622,94 @@ function renderBooks(books) {
       editButton.disabled = true;
     });
 
+    const bookInfoEditButton = document.createElement("button");
+    bookInfoEditButton.type = "button";
+    bookInfoEditButton.className = "secondary-button";
+    bookInfoEditButton.textContent = "書籍情報を編集";
+    bookInfoEditButton.addEventListener("click", () => {
+      const editForm = document.createElement("div");
+      editForm.className = "book-edit-form";
+
+      const fields = [
+        { label: "番号", type: "number", value: book.number || "", min: "1", step: "1" },
+        { label: "コース", type: "text", value: book.course || "" },
+        { label: "タイトル", type: "text", value: book.title || "", required: true },
+        { label: "シリーズ名", type: "text", value: book.series || "" },
+        { label: "著者", type: "text", value: book.author === "著者未記入" ? "" : book.author || "" },
+        { label: "出版社", type: "text", value: book.publisher || "" },
+        { label: "ISBN", type: "text", value: book.isbn || "" },
+      ].map((field) => {
+        const label = document.createElement("label");
+        label.textContent = field.label;
+        const input = document.createElement("input");
+        input.type = field.type;
+        input.value = field.value;
+        if (field.min) input.min = field.min;
+        if (field.step) input.step = field.step;
+        if (field.required) input.required = true;
+        label.appendChild(input);
+        editForm.appendChild(label);
+        return input;
+      });
+
+      const editActions = document.createElement("div");
+      editActions.className = "actions";
+      const saveButton = document.createElement("button");
+      saveButton.type = "button";
+      saveButton.className = "primary-button";
+      saveButton.textContent = "保存";
+      saveButton.addEventListener("click", async () => {
+        const [numberField, courseField, titleField, seriesField, authorField, publisherField, isbnField] = fields;
+        const numberValue = numberField.value.trim();
+        const number = numberValue ? Number(numberValue) : null;
+        if (!titleField.value.trim()) {
+          setStatus("タイトルを入力してください。", "error");
+          titleField.focus();
+          return;
+        }
+        if (numberValue && (!Number.isInteger(number) || number < 1)) {
+          setStatus("番号は1以上の整数で入力してください。", "error");
+          numberField.focus();
+          return;
+        }
+
+        try {
+          const user = auth.currentUser;
+          if (!user) {
+            setStatus("ログイン状態を確認してから再試行してください。", "error");
+            return;
+          }
+          const bookRef = doc(getReadingRecordsCollection(user), book.id);
+          await updateDoc(bookRef, {
+            number,
+            course: courseField.value.trim(),
+            title: titleField.value.trim(),
+            series: seriesField.value.trim(),
+            author: authorField.value.trim() || "著者未記入",
+            publisher: publisherField.value.trim(),
+            isbn: isbnField.value.trim(),
+            updatedAt: serverTimestamp(),
+          });
+          setStatus(`${titleField.value.trim()}を更新しました。`, "success");
+        } catch (error) {
+          console.error(error);
+          setStatus("書籍情報の更新に失敗しました。", "error");
+        }
+      });
+
+      const cancelButton = document.createElement("button");
+      cancelButton.type = "button";
+      cancelButton.className = "secondary-button";
+      cancelButton.textContent = "キャンセル";
+      cancelButton.addEventListener("click", () => editForm.remove());
+
+      editActions.appendChild(saveButton);
+      editActions.appendChild(cancelButton);
+      editForm.appendChild(editActions);
+      info.appendChild(editForm);
+      bookInfoEditButton.disabled = true;
+    });
+
     const deleteButton = document.createElement("button");
     deleteButton.type = "button";
     deleteButton.className = "delete-button";
@@ -644,6 +732,7 @@ function renderBooks(books) {
 
     actions.appendChild(toggleButton);
     actions.appendChild(editButton);
+    actions.appendChild(bookInfoEditButton);
     actions.appendChild(deleteButton);
 
     item.appendChild(info);
