@@ -143,7 +143,11 @@ function parseBookMetadata(xml) {
     throw new Error("NDL Search API returned invalid XML");
   }
 
-  const item = xml.getElementsByTagName("item")[0];
+  const items = [...xml.getElementsByTagName("item")];
+  const getItemIsbn = (item) =>
+    [...item.children]
+      .find((child) => child.localName === "identifier" && /isbn/i.test(child.getAttribute("xsi:type") || ""))?.textContent.trim() || "";
+  const item = items.find((candidate) => getItemIsbn(candidate)) || items[0];
   if (!item) {
     return null;
   }
@@ -158,6 +162,7 @@ function parseBookMetadata(xml) {
     series: getXmlText(item, "seriesTitle"),
     author: getResponsibilityStatement(item) || creators.join(" / "),
     publisher: getXmlText(item, "publisher"),
+    isbn: normalizeIsbn(getItemIsbn(item)),
   };
 }
 
@@ -176,7 +181,7 @@ async function fetchBookMetadata(isbn) {
 
 async function fetchBookMetadataByTitle(title) {
   const endpoint = new URL("https://ndlsearch.ndl.go.jp/api/opensearch");
-  endpoint.searchParams.set("cnt", "1");
+  endpoint.searchParams.set("cnt", "10");
   endpoint.searchParams.set("title", title);
   const response = await fetch(endpoint);
 
@@ -218,6 +223,9 @@ async function lookupBookByIsbn() {
     if (metadata.publisher) {
       publisherInput.value = metadata.publisher;
     }
+    if (metadata.isbn) {
+      isbnInput.value = metadata.isbn;
+    }
     isbnInput.value = normalizeIsbn(isbn);
 
     setStatus("書誌情報を取得しました。内容を確認して登録してください。", "success");
@@ -256,6 +264,7 @@ async function lookupBookByTitle() {
     if (metadata.series) seriesInput.value = metadata.series;
     if (metadata.author) authorInput.value = metadata.author;
     if (metadata.publisher) publisherInput.value = metadata.publisher;
+    if (metadata.isbn) isbnInput.value = metadata.isbn;
     setStatus("書誌情報を取得しました。内容を確認して登録してください。", "success");
   } catch (error) {
     console.error(error);
