@@ -603,7 +603,10 @@ function renderBooks(books) {
       cancelButton.type = "button";
       cancelButton.className = "secondary-button";
       cancelButton.textContent = "キャンセル";
-      cancelButton.addEventListener("click", () => editForm.remove());
+      cancelButton.addEventListener("click", () => {
+        editForm.remove();
+        editButton.disabled = false;
+      });
 
       editActions.appendChild(saveButton);
       editActions.appendChild(cancelButton);
@@ -694,7 +697,10 @@ function renderBooks(books) {
       cancelButton.type = "button";
       cancelButton.className = "secondary-button";
       cancelButton.textContent = "キャンセル";
-      cancelButton.addEventListener("click", () => editForm.remove());
+      cancelButton.addEventListener("click", () => {
+        editForm.remove();
+        bookInfoEditButton.disabled = false;
+      });
 
       editActions.appendChild(saveButton);
       editActions.appendChild(cancelButton);
