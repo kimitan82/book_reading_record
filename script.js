@@ -504,18 +504,11 @@ function renderBooks(books) {
     readDate.className = "book-read-date";
     readDate.textContent = `読んだ日: ${book.readDate || "未記入"}`;
 
-    const metadata = document.createElement("p");
-    metadata.className = "book-metadata";
-    metadata.textContent =
-      `作成日時: ${formatFirestoreTimestamp(book.createdAt)} / ` +
-      `更新日時: ${formatFirestoreTimestamp(book.updatedAt)}`;
-
     info.appendChild(title);
     info.appendChild(author);
     info.appendChild(details);
     info.appendChild(comment);
     info.appendChild(readDate);
-    info.appendChild(metadata);
 
     const statusChip = document.createElement("span");
     statusChip.className = `status-chip ${book.read ? "done" : "todo"}`;
