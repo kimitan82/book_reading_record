@@ -70,6 +70,41 @@ let booksUnsubscribe = null;
 let currentUser = null;
 let currentBooks = [];
 
+function applySortPreferences(preferences = {}) {
+  if (sortField && preferences.sortField) {
+    const sortFieldOption = [...sortField.options].find((option) => option.value === preferences.sortField);
+    if (sortFieldOption) {
+      sortField.value = preferences.sortField;
+    }
+  }
+
+  if (sortDirection && (preferences.sortDirection === "asc" || preferences.sortDirection === "desc")) {
+    sortDirection.value = preferences.sortDirection;
+  }
+}
+
+async function saveSortPreferences() {
+  const user = auth.currentUser;
+  if (!user || !sortField || !sortDirection) {
+    return;
+  }
+
+  try {
+    await setDoc(
+      doc(db, "users", user.uid),
+      {
+        sortField: sortField.value,
+        sortDirection: sortDirection.value,
+        updatedAt: serverTimestamp(),
+      },
+      { merge: true }
+    );
+  } catch (error) {
+    console.error(error);
+    setStatus("並べ替え設定の保存に失敗しました。", "error");
+  }
+}
+
 numberInput?.addEventListener("keydown", (event) => {
   if (event.key !== "Enter") {
     return;
@@ -773,8 +808,14 @@ function renderBooks(books) {
   });
 }
 
-sortField?.addEventListener("change", () => renderBooks(currentBooks));
-sortDirection?.addEventListener("change", () => renderBooks(currentBooks));
+sortField?.addEventListener("change", () => {
+  renderBooks(currentBooks);
+  void saveSortPreferences();
+});
+sortDirection?.addEventListener("change", () => {
+  renderBooks(currentBooks);
+  void saveSortPreferences();
+});
 
 async function loadBooksOnce(userId) {
   if (!db || !userId) {
@@ -860,6 +901,7 @@ async function ensureUserProfile(user) {
 
     const userData = userDoc.exists() ? userDoc.data() : { name: fallbackName };
     userNameLabel.textContent = userData.name || fallbackName;
+    applySortPreferences(userData);
   } catch (error) {
     if (error?.code !== "unavailable") {
       console.warn("ユーザープロファイルの取得に失敗しました。オフライン時でもログインを継続します。", error);
