@@ -13,6 +13,7 @@ import {
   deleteDoc,
   doc,
   getDoc,
+  getDocs,
   initializeFirestore,
   onSnapshot,
   orderBy,
@@ -46,6 +47,10 @@ const lookupIsbnButton = document.getElementById("lookup-isbn-button");
 const readInput = document.getElementById("book-read");
 const readDateInput = document.getElementById("book-read-date");
 const commentInput = document.getElementById("book-comment");
+const exportCsvButton = document.getElementById("export-csv-button");
+const csvFileInput = document.getElementById("csv-file");
+const csvImportMode = document.getElementById("csv-import-mode");
+const importCsvButton = document.getElementById("import-csv-button");
 const bookList = document.getElementById("book-list");
 const statusMessage = document.getElementById("status-message");
 const bookCount = document.getElementById("book-count");
@@ -162,6 +167,189 @@ function setAuthStatus(message, type = "") {
   authStatus.textContent = message;
   authStatus.className = `status-message ${type}`.trim();
 }
+
+const csvColumns = [
+  ["number", "番号"],
+  ["course", "コース"],
+  ["title", "タイトル"],
+  ["series", "シリーズ名"],
+  ["author", "著者"],
+  ["publisher", "出版社"],
+  ["isbn", "ISBN"],
+  ["read", "読書状況"],
+  ["readDate", "読んだ日"],
+  ["comment", "コメント"],
+];
+
+function escapeCsvValue(value) {
+  const text = value == null ? "" : String(value);
+  return `"${text.replaceAll('"', '""')}"`;
+}
+
+function parseCsv(text) {
+  const rows = [];
+  let row = [];
+  let value = "";
+  let quoted = false;
+
+  for (let index = 0; index < text.length; index += 1) {
+    const character = text[index];
+    const nextCharacter = text[index + 1];
+    if (character === '"' && quoted && nextCharacter === '"') {
+      value += '"';
+      index += 1;
+    } else if (character === '"') {
+      quoted = !quoted;
+    } else if (character === "," && !quoted) {
+      row.push(value);
+      value = "";
+    } else if ((character === "\n" || character === "\r") && !quoted) {
+      if (character === "\r" && nextCharacter === "\n") {
+        index += 1;
+      }
+      row.push(value);
+      if (row.some((cell) => cell.trim() !== "")) {
+        rows.push(row);
+      }
+      row = [];
+      value = "";
+    } else {
+      value += character;
+    }
+  }
+
+  if (value || row.length > 0) {
+    row.push(value);
+    if (row.some((cell) => cell.trim() !== "")) {
+      rows.push(row);
+    }
+  }
+
+  return rows;
+}
+
+function createBookFromCsvRow(row, headerIndex) {
+  const getValue = (key) => row[headerIndex.get(key)]?.trim() || "";
+  const numberValue = getValue("number");
+  const number = numberValue ? Number(numberValue) : null;
+
+  if (!getValue("title")) {
+    throw new Error("タイトルが空の行があります。");
+  }
+  if (numberValue && (!Number.isInteger(number) || number < 1)) {
+    throw new Error("番号は1以上の整数で入力してください。");
+  }
+
+  const readValue = getValue("read");
+  return {
+    number,
+    course: getValue("course"),
+    title: getValue("title"),
+    series: getValue("series"),
+    author: getValue("author") || "著者未記入",
+    publisher: getValue("publisher"),
+    isbn: getValue("isbn"),
+    read: readValue === "true" || readValue === "読んだ",
+    readDate: getValue("readDate"),
+    comment: getValue("comment"),
+    createdAt: Timestamp.now(),
+    updatedAt: serverTimestamp(),
+  };
+}
+
+async function getCurrentBooks(user) {
+  const recordsQuery = query(getReadingRecordsCollection(user), orderBy("createdAt", "desc"));
+  const snapshot = await getDocs(recordsQuery);
+  return snapshot.docs;
+}
+
+async function exportBooksToCsv() {
+  const user = auth.currentUser;
+  if (!user) {
+    setStatus("ログインしてください。", "error");
+    return;
+  }
+
+  exportCsvButton.disabled = true;
+  try {
+    const documents = await getCurrentBooks(user);
+    const header = csvColumns.map(([, label]) => escapeCsvValue(label)).join(",");
+    const lines = documents.map((bookDocument) => {
+      const book = bookDocument.data();
+      const values = [
+        book.number,
+        book.course,
+        book.title,
+        book.series,
+        book.author,
+        book.publisher,
+        book.isbn,
+        book.read ? "読んだ" : "未読",
+        book.readDate,
+        book.comment,
+      ];
+      return values.map(escapeCsvValue).join(",");
+    });
+    const blob = new Blob([`\uFEFF${[header, ...lines].join("\r\n")}`], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `課題図書_${new Date().toISOString().slice(0, 10)}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+    setStatus(`${documents.length}件の課題図書をCSVに書き出しました。`, "success");
+  } catch (error) {
+    console.error(error);
+    setStatus(getFirestoreErrorMessage(error, "CSVの書き出し"), "error");
+  } finally {
+    exportCsvButton.disabled = false;
+  }
+}
+
+async function importBooksFromCsv() {
+  const user = auth.currentUser;
+  const file = csvFileInput?.files[0];
+  if (!user) {
+    setStatus("ログインしてください。", "error");
+    return;
+  }
+  if (!file) {
+    setStatus("読み込むCSVファイルを選択してください。", "error");
+    return;
+  }
+  if (csvImportMode.value === "replace" && !window.confirm("既存の課題図書をすべて削除して上書きします。よろしいですか？")) {
+    return;
+  }
+
+  importCsvButton.disabled = true;
+  try {
+    const rows = parseCsv(await file.text());
+    if (rows.length < 2) {
+      throw new Error("CSVに読み込むデータがありません。");
+    }
+    const headerIndex = new Map(rows[0].map((label, index) => [label.replace(/^\uFEFF/, "").trim(), index]));
+    const missingColumns = csvColumns.filter(([, label]) => !headerIndex.has(label));
+    if (missingColumns.length > 0) {
+      throw new Error(`CSVに必要な列がありません: ${missingColumns.map(([, label]) => label).join("、")}`);
+    }
+    const books = rows.slice(1).map((row) => createBookFromCsvRow(row, headerIndex));
+    if (csvImportMode.value === "replace") {
+      const existingDocuments = await getCurrentBooks(user);
+      await Promise.all(existingDocuments.map((bookDocument) => deleteDoc(bookDocument.ref)));
+    }
+    await Promise.all(books.map((book) => addDoc(getReadingRecordsCollection(user), book)));
+    csvFileInput.value = "";
+    setStatus(`${books.length}件の課題図書を${csvImportMode.value === "replace" ? "上書き" : "追加"}しました。`, "success");
+  } catch (error) {
+    console.error(error);
+    setStatus(error.message || getFirestoreErrorMessage(error, "CSVの読み込み"), "error");
+  } finally {
+    importCsvButton.disabled = false;
+  }
+}
+
+exportCsvButton?.addEventListener("click", () => void exportBooksToCsv());
+importCsvButton?.addEventListener("click", () => void importBooksFromCsv());
 
 function getAuthErrorMessage(error) {
   const code = error?.code || "";

@@ -109,12 +109,28 @@
             <button type="submit" class="primary-button">登録する</button>
           </form>
           <p id="status-message" class="status-message" aria-live="polite"></p>
+          <div class="csv-tools">
+            <h3>CSV入出力</h3>
+            <button id="export-csv-button" type="button" class="secondary-button">課題図書情報をCSVに書き出す</button>
+            <div class="field">
+              <label for="csv-file">読み込むCSVファイル</label>
+              <input id="csv-file" type="file" accept=".csv,text/csv" />
+            </div>
+            <div class="field">
+              <label for="csv-import-mode">読み込み方法</label>
+              <select id="csv-import-mode">
+                <option value="append">読み込んだ内容を追加</option>
+                <option value="replace">既存の内容を削除して上書き</option>
+              </select>
+            </div>
+            <button id="import-csv-button" type="button" class="primary-button">CSVを読み込む</button>
+          </div>
           <p class="api-credit">
             書誌情報は<a href="https://ndlsearch.ndl.go.jp/" target="_blank" rel="noopener noreferrer">国立国会図書館サーチ</a>のAPIから取得します。
           </p>
         </section>
       </main>
     </div>
-    <script type="module" src="script.js?v=20260905-3"></script>
+    <script type="module" src="script.js?v=20260905-4"></script>
   </body>
 </html>
