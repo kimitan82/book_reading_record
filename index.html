@@ -71,13 +71,51 @@
             <h2>課題図書を登録</h2>
 
             <div class="field">
+              <label for="book-number">番号</label>
+              <input id="book-number" name="number" type="number" min="1" step="1" placeholder="例: 1" />
+            </div>
+
+            <div class="field">
+              <label for="book-course">コース</label>
+              <input id="book-course" name="course" type="text" maxlength="100" placeholder="例: 国語" />
+            </div>
+
+            <div class="field">
               <label for="book-title">タイトル</label>
               <input id="book-title" name="title" type="text" maxlength="100" placeholder="例: 人間失格" required />
             </div>
 
             <div class="field">
+              <label for="book-series">シリーズ名</label>
+              <input id="book-series" name="series" type="text" maxlength="100" placeholder="例: 日本文学名作選" />
+            </div>
+
+            <div class="field">
               <label for="book-author">著者</label>
               <input id="book-author" name="author" type="text" maxlength="100" placeholder="例: 太宰治" />
+            </div>
+
+            <div class="field">
+              <label for="book-publisher">出版社</label>
+              <input id="book-publisher" name="publisher" type="text" maxlength="100" placeholder="例: ○○出版" />
+            </div>
+
+            <div class="field">
+              <label for="book-isbn">ISBN</label>
+              <input id="book-isbn" name="isbn" type="text" maxlength="20" inputmode="numeric" placeholder="例: 978-4-0000-0000-0" />
+            </div>
+
+            <div class="field">
+              <label for="book-read">読書状況</label>
+              <select id="book-read" name="read">
+                <option value="false">未読</option>
+                <option value="true">読んだ</option>
+              </select>
+            </div>
+
+            <div class="field">
+              <label for="book-comment">コメント</label>
+              <textarea id="book-comment" name="comment" maxlength="1000" rows="4" placeholder="感想やメモ"></textarea>
             </div>
 
             <button type="submit" class="primary-button">登録する</button>
@@ -97,6 +135,6 @@
       </main>
     </div>
 
-    <script type="module" src="script.js?v=20260904-8"></script>
+    <script type="module" src="script.js?v=20260905-1"></script>
   </body>
 </html>

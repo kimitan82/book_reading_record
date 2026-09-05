@@ -36,7 +36,14 @@ const form = document.getElementById("book-form");
 const configForm = document.getElementById("firebase-config-form");
 const configInput = document.getElementById("firebase-config-json");
 const titleInput = document.getElementById("book-title");
+const numberInput = document.getElementById("book-number");
+const courseInput = document.getElementById("book-course");
+const seriesInput = document.getElementById("book-series");
 const authorInput = document.getElementById("book-author");
+const publisherInput = document.getElementById("book-publisher");
+const isbnInput = document.getElementById("book-isbn");
+const readInput = document.getElementById("book-read");
+const commentInput = document.getElementById("book-comment");
 const bookList = document.getElementById("book-list");
 const statusMessage = document.getElementById("status-message");
 const bookCount = document.getElementById("book-count");
@@ -178,6 +185,21 @@ function renderBooks(books) {
     author.className = "book-author";
     author.textContent = book.author || "著者未記入";
 
+    const details = document.createElement("p");
+    details.className = "book-details";
+    const detailItems = [
+      book.number ? `番号: ${book.number}` : "",
+      book.course ? `コース: ${book.course}` : "",
+      book.series ? `シリーズ: ${book.series}` : "",
+      book.publisher ? `出版社: ${book.publisher}` : "",
+      book.isbn ? `ISBN: ${book.isbn}` : "",
+    ].filter(Boolean);
+    details.textContent = detailItems.length > 0 ? detailItems.join(" / ") : "詳細情報未記入";
+
+    const comment = document.createElement("p");
+    comment.className = "book-comment";
+    comment.textContent = book.comment || "コメント未記入";
+
     const metadata = document.createElement("p");
     metadata.className = "book-metadata";
     metadata.textContent =
@@ -186,6 +208,8 @@ function renderBooks(books) {
 
     info.appendChild(title);
     info.appendChild(author);
+    info.appendChild(details);
+    info.appendChild(comment);
     info.appendChild(metadata);
 
     const statusChip = document.createElement("span");
@@ -492,7 +516,15 @@ form.addEventListener("submit", async (event) => {
   }
 
   const title = titleInput.value.trim();
+  const numberValue = numberInput.value.trim();
+  const number = numberValue ? Number(numberValue) : null;
+  const course = courseInput.value.trim();
+  const series = seriesInput.value.trim();
   const author = authorInput.value.trim();
+  const publisher = publisherInput.value.trim();
+  const isbn = isbnInput.value.trim();
+  const read = readInput.value === "true";
+  const comment = commentInput.value.trim();
 
   if (!title) {
     setStatus("タイトルを入力してください。", "error");
@@ -500,12 +532,24 @@ form.addEventListener("submit", async (event) => {
     return;
   }
 
+  if (numberValue && (!Number.isInteger(number) || number < 1)) {
+    setStatus("番号は1以上の整数で入力してください。", "error");
+    numberInput.focus();
+    return;
+  }
+
   try {
     const readingRecordsCollection = getReadingRecordsCollection(user);
     await addDoc(readingRecordsCollection, {
+      number,
+      course,
       title,
+      series,
       author: author || "著者未記入",
-      read: false,
+      publisher,
+      isbn,
+      read,
+      comment,
       createdAt: Timestamp.now(),
       updatedAt: serverTimestamp(),
     });
