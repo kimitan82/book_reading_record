@@ -54,6 +54,8 @@ const importCsvButton = document.getElementById("import-csv-button");
 const bookList = document.getElementById("book-list");
 const statusMessage = document.getElementById("status-message");
 const bookCount = document.getElementById("book-count");
+const sortField = document.getElementById("sort-field");
+const sortDirection = document.getElementById("sort-direction");
 const authStatus = document.getElementById("auth-status");
 const userNameLabel = document.getElementById("user-name");
 const userIdLabel = document.getElementById("user-id");
@@ -66,6 +68,7 @@ const appSections = document.querySelectorAll("[data-auth-required]");
 
 let booksUnsubscribe = null;
 let currentUser = null;
+let currentBooks = [];
 
 numberInput?.addEventListener("keydown", (event) => {
   if (event.key !== "Enter") {
@@ -462,15 +465,43 @@ function renderBooks(books) {
     return;
   }
 
-  bookList.innerHTML = "";
-  bookCount.textContent = `${books.length}件`;
+  currentBooks = books;
+  const field = sortField?.value || "createdAt";
+  const direction = sortDirection?.value === "desc" ? -1 : 1;
+  const sortedBooks = [...books].sort((first, second) => {
+    if (field === "createdAt") {
+      const firstDate = first.createdAt?.toMillis?.() || 0;
+      const secondDate = second.createdAt?.toMillis?.() || 0;
+      return (firstDate - secondDate) * direction;
+    }
 
-  if (books.length === 0) {
+    let firstValue = first[field];
+    let secondValue = second[field];
+    if (field === "read") {
+      firstValue = firstValue ? 1 : 0;
+      secondValue = secondValue ? 1 : 0;
+    } else if (field === "number") {
+      firstValue = firstValue == null ? Number.POSITIVE_INFINITY : Number(firstValue);
+      secondValue = secondValue == null ? Number.POSITIVE_INFINITY : Number(secondValue);
+    } else {
+      firstValue = String(firstValue || "").toLocaleLowerCase("ja");
+      secondValue = String(secondValue || "").toLocaleLowerCase("ja");
+    }
+
+    if (firstValue < secondValue) return -1 * direction;
+    if (firstValue > secondValue) return 1 * direction;
+    return 0;
+  });
+
+  bookList.innerHTML = "";
+  bookCount.textContent = `${sortedBooks.length}件`;
+
+  if (sortedBooks.length === 0) {
     renderEmptyState();
     return;
   }
 
-  books.forEach((book) => {
+  sortedBooks.forEach((book) => {
     const item = document.createElement("li");
     item.className = "book-item";
 
@@ -528,6 +559,7 @@ function renderBooks(books) {
           setStatus("ログイン状態を確認してから再試行してください。", "error");
           return;
         }
+
         const bookRef = doc(getReadingRecordsCollection(user), book.id);
         const nextRead = !book.read;
         await updateDoc(bookRef, {
@@ -740,6 +772,9 @@ function renderBooks(books) {
     bookList.appendChild(item);
   });
 }
+
+sortField?.addEventListener("change", () => renderBooks(currentBooks));
+sortDirection?.addEventListener("change", () => renderBooks(currentBooks));
 
 async function loadBooksOnce(userId) {
   if (!db || !userId) {
