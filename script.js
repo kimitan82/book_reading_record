@@ -1010,6 +1010,7 @@ async function ensureUserProfile(user) {
     const userData = userDoc.exists() ? userDoc.data() : { name: fallbackName };
     userNameLabel.textContent = userData.name || fallbackName;
     applySortPreferences(userData);
+    renderBooks(currentBooks);
   } catch (error) {
     if (error?.code !== "unavailable") {
       console.warn("ユーザープロファイルの取得に失敗しました。オフライン時でもログインを継続します。", error);
