@@ -40,6 +40,13 @@ button {
   transition: transform 0.15s ease, opacity 0.2s ease;
 }
 
+.page-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+}
+
 .hidden {
   display: none !important;
 }

@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>課題図書を登録 | 読書記録管理</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div class="app">
+      <header class="topbar">
+        <div class="topbar-row">
+          <h1>課題図書を登録</h1>
+          <div class="actions">
+            <a class="secondary-button page-link" href="index.html">一覧に戻る</a>
+            <button id="logout-button" type="button" class="secondary-button hidden">ログアウト</button>
+          </div>
+        </div>
+      </header>
+
+      <main class="layout register-layout">
+        <section class="panel auth-panel">
+          <h2>ログイン</h2>
+          <div class="auth-forms">
+            <form id="signup-form" class="stacked-form">
+              <h3>新規登録</h3>
+              <div class="field">
+                <label for="signup-name">名前</label>
+                <input id="signup-name" type="text" maxlength="50" placeholder="例: 山田太郎" required />
+              </div>
+              <div class="field">
+                <label for="signup-email">メールアドレス</label>
+                <input id="signup-email" type="email" maxlength="255" placeholder="example@email.com" required />
+              </div>
+              <div class="field">
+                <label for="signup-password">パスワード</label>
+                <input id="signup-password" type="password" minlength="6" maxlength="128" placeholder="6文字以上" required />
+              </div>
+              <button type="submit" class="primary-button">新規登録</button>
+            </form>
+            <form id="login-form" class="stacked-form">
+              <h3>ログイン</h3>
+              <div class="field">
+                <label for="login-email">メールアドレス</label>
+                <input id="login-email" type="email" maxlength="255" autocomplete="username" placeholder="example@email.com" required />
+              </div>
+              <div class="field">
+                <label for="login-password">パスワード</label>
+                <input id="login-password" type="password" maxlength="128" autocomplete="current-password" placeholder="パスワード" required />
+              </div>
+              <button type="submit" class="primary-button">ログイン</button>
+              <button id="reset-password-button" type="button" class="secondary-button">パスワードを再設定する</button>
+            </form>
+          </div>
+          <p id="auth-status" class="status-message" aria-live="polite"></p>
+        </section>
+
+        <section class="panel register-panel" data-auth-required>
+          <div class="section-header">
+            <h2>課題図書を登録</h2>
+            <span id="user-name" class="user-badge">未ログイン</span>
+          </div>
+          <p id="user-id" class="user-id">Firebase UID: 未ログイン</p>
+          <form id="book-form" class="book-form">
+            <div class="field">
+              <label for="book-number">番号</label>
+              <input id="book-number" name="number" type="number" min="1" step="1" placeholder="例: 1" />
+            </div>
+            <div class="field">
+              <label for="book-course">コース</label>
+              <input id="book-course" name="course" type="text" maxlength="100" placeholder="例: 国語" />
+            </div>
+            <div class="field">
+              <label for="book-title">タイトル</label>
+              <input id="book-title" name="title" type="text" maxlength="100" placeholder="例: 人間失格" required />
+            </div>
+            <div class="field">
+              <label for="book-series">シリーズ名</label>
+              <input id="book-series" name="series" type="text" maxlength="100" placeholder="例: 日本文学名作選" />
+            </div>
+            <div class="field">
+              <label for="book-author">著者</label>
+              <input id="book-author" name="author" type="text" maxlength="100" placeholder="例: 太宰治" />
+            </div>
+            <div class="field">
+              <label for="book-publisher">出版社</label>
+              <input id="book-publisher" name="publisher" type="text" maxlength="100" placeholder="例: ○○出版" />
+            </div>
+            <div class="field">
+              <label for="book-isbn">ISBN</label>
+              <input id="book-isbn" name="isbn" type="text" maxlength="20" inputmode="numeric" placeholder="例: 978-4-0000-0000-0" />
+            </div>
+            <div class="field">
+              <label for="book-read">読書状況</label>
+              <select id="book-read" name="read">
+                <option value="false">未読</option>
+                <option value="true">読んだ</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="book-read-date">読んだ日</label>
+              <input id="book-read-date" name="readDate" type="date" />
+            </div>
+            <div class="field">
+              <label for="book-comment">コメント</label>
+              <textarea id="book-comment" name="comment" maxlength="1000" rows="4" placeholder="感想やメモ"></textarea>
+            </div>
+            <button type="submit" class="primary-button">登録する</button>
+          </form>
+          <p id="status-message" class="status-message" aria-live="polite"></p>
+        </section>
+      </main>
+    </div>
+    <script type="module" src="script.js?v=20260905-2"></script>
+  </body>
+</html>

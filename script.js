@@ -147,6 +147,10 @@ function toggleAuthRequiredSections(isLoggedIn) {
 }
 
 function resetBooksView() {
+  if (!bookList || !bookCount) {
+    return;
+  }
+
   bookList.innerHTML = "";
   bookCount.textContent = "0件";
   const emptyState = document.createElement("li");
@@ -156,6 +160,10 @@ function resetBooksView() {
 }
 
 function renderEmptyState() {
+  if (!bookList) {
+    return;
+  }
+
   const emptyState = document.createElement("li");
   emptyState.className = "empty-state";
   emptyState.textContent = "まだ読書記録が登録されていません。";
@@ -163,6 +171,10 @@ function renderEmptyState() {
 }
 
 function renderBooks(books) {
+  if (!bookList || !bookCount) {
+    return;
+  }
+
   bookList.innerHTML = "";
   bookCount.textContent = `${books.length}件`;
 
@@ -588,7 +600,7 @@ logoutButton.addEventListener("click", async () => {
   }
 });
 
-form.addEventListener("submit", async (event) => {
+form?.addEventListener("submit", async (event) => {
   event.preventDefault();
 
   const user = auth.currentUser;
