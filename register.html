@@ -89,6 +89,7 @@
             <div class="field">
               <label for="book-isbn">ISBN</label>
               <input id="book-isbn" name="isbn" type="text" maxlength="20" inputmode="numeric" placeholder="例: 978-4-0000-0000-0" />
+              <button id="lookup-isbn-button" type="button" class="secondary-button">ISBNから情報を取得</button>
             </div>
             <div class="field">
               <label for="book-read">読書状況</label>
@@ -108,9 +109,12 @@
             <button type="submit" class="primary-button">登録する</button>
           </form>
           <p id="status-message" class="status-message" aria-live="polite"></p>
+          <p class="api-credit">
+            書誌情報は<a href="https://ndlsearch.ndl.go.jp/" target="_blank" rel="noopener noreferrer">国立国会図書館サーチ</a>のAPIから取得します。
+          </p>
         </section>
       </main>
     </div>
-    <script type="module" src="script.js?v=20260905-2"></script>
+    <script type="module" src="script.js?v=20260905-3"></script>
   </body>
 </html>

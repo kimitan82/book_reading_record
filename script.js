@@ -42,6 +42,7 @@ const seriesInput = document.getElementById("book-series");
 const authorInput = document.getElementById("book-author");
 const publisherInput = document.getElementById("book-publisher");
 const isbnInput = document.getElementById("book-isbn");
+const lookupIsbnButton = document.getElementById("lookup-isbn-button");
 const readInput = document.getElementById("book-read");
 const readDateInput = document.getElementById("book-read-date");
 const commentInput = document.getElementById("book-comment");
@@ -68,6 +69,81 @@ numberInput?.addEventListener("keydown", (event) => {
 
   event.preventDefault();
   courseInput?.focus();
+});
+
+function getXmlText(element, localName) {
+  return [...element.children].find((child) => child.localName === localName)?.textContent.trim() || "";
+}
+
+async function lookupBookByIsbn() {
+  const isbn = isbnInput?.value.replace(/[-\s]/g, "").trim();
+
+  if (!isbn) {
+    setStatus("ISBNを入力してください。", "error");
+    isbnInput?.focus();
+    return;
+  }
+
+  lookupIsbnButton.disabled = true;
+  setStatus("ISBNから書誌情報を検索しています。", "");
+
+  try {
+    const endpoint = new URL("https://ndlsearch.ndl.go.jp/api/opensearch");
+    endpoint.searchParams.set("cnt", "1");
+    endpoint.searchParams.set("isbn", isbn);
+    const response = await fetch(endpoint);
+
+    if (!response.ok) {
+      throw new Error(`NDL Search API returned ${response.status}`);
+    }
+
+    const xml = new DOMParser().parseFromString(await response.text(), "application/xml");
+    if (xml.querySelector("parsererror")) {
+      throw new Error("NDL Search API returned invalid XML");
+    }
+
+    const item = xml.getElementsByTagName("item")[0];
+    if (!item) {
+      setStatus("該当する書誌情報が見つかりませんでした。", "error");
+      return;
+    }
+
+    const title = getXmlText(item, "title");
+    const creators = [...item.children]
+      .filter((child) => child.localName === "creator")
+      .map((child) => child.textContent.trim())
+      .filter(Boolean);
+    const series = getXmlText(item, "seriesTitle");
+    const publisher = getXmlText(item, "publisher");
+
+    if (title) {
+      titleInput.value = title;
+    }
+    if (series) {
+      seriesInput.value = series;
+    }
+    if (creators.length > 0) {
+      authorInput.value = creators[0];
+    }
+    if (publisher) {
+      publisherInput.value = publisher;
+    }
+
+    setStatus("書誌情報を取得しました。内容を確認して登録してください。", "success");
+  } catch (error) {
+    console.error(error);
+    setStatus("書誌情報の取得に失敗しました。ISBNを確認するか、手入力してください。", "error");
+  } finally {
+    lookupIsbnButton.disabled = false;
+  }
+}
+
+lookupIsbnButton?.addEventListener("click", lookupBookByIsbn);
+isbnInput?.addEventListener("keydown", (event) => {
+  if (event.key === "Enter") {
+    event.preventDefault();
+    void lookupBookByIsbn();
+  }
 });
 
 function setStatus(message, type = "") {
