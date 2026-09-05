@@ -96,6 +96,29 @@
               <option value="desc">降順</option>
             </select>
           </div>
+          <div class="filter-controls">
+            <label for="filter-field">フィルター</label>
+            <select id="filter-field">
+              <option value="">項目を選択</option>
+              <option value="number">番号</option>
+              <option value="course">コース</option>
+              <option value="title">タイトル</option>
+              <option value="series">シリーズ名</option>
+              <option value="author">著者</option>
+              <option value="publisher">出版社</option>
+              <option value="isbn">ISBN</option>
+              <option value="read">読書状況</option>
+              <option value="readDate">読んだ日</option>
+              <option value="comment">コメント</option>
+            </select>
+            <input id="filter-value" type="search" placeholder="絞り込み条件" disabled />
+            <select id="filter-read-value" class="hidden" aria-label="読書状況の絞り込み">
+              <option value="">すべて</option>
+              <option value="true">読んだ</option>
+              <option value="false">未読</option>
+            </select>
+            <button id="clear-filter-button" type="button" class="secondary-button">クリア</button>
+          </div>
 
           <ul id="book-list" class="book-list" aria-live="polite"></ul>
         </section>

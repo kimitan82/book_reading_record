@@ -357,6 +357,31 @@ button {
   color: var(--text);
 }
 
+.filter-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 18px;
+  color: var(--muted);
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.filter-controls input,
+.filter-controls select {
+  min-width: 130px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--text);
+}
+
+.filter-controls input:disabled {
+  background: #f3f4f6;
+}
+
 .book-list {
   list-style: none;
   padding: 0;

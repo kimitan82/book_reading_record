@@ -57,6 +57,10 @@ const statusMessage = document.getElementById("status-message");
 const bookCount = document.getElementById("book-count");
 const sortField = document.getElementById("sort-field");
 const sortDirection = document.getElementById("sort-direction");
+const filterField = document.getElementById("filter-field");
+const filterValue = document.getElementById("filter-value");
+const filterReadValue = document.getElementById("filter-read-value");
+const clearFilterButton = document.getElementById("clear-filter-button");
 const authStatus = document.getElementById("auth-status");
 const userNameLabel = document.getElementById("user-name");
 const userIdLabel = document.getElementById("user-id");
@@ -70,6 +74,28 @@ const appSections = document.querySelectorAll("[data-auth-required]");
 let booksUnsubscribe = null;
 let currentUser = null;
 let currentBooks = [];
+
+function filterBooks(books) {
+  const field = filterField?.value;
+  if (!field) {
+    return books;
+  }
+
+  if (field === "read") {
+    const readValue = filterReadValue?.value;
+    return readValue === "" ? books : books.filter((book) => String(Boolean(book.read)) === readValue);
+  }
+
+  const queryText = filterValue?.value.trim().toLocaleLowerCase("ja");
+  if (!queryText) {
+    return books;
+  }
+
+  return books.filter((book) => {
+    const value = field === "number" ? (book.number == null ? "" : String(book.number)) : String(book[field] || "");
+    return value.toLocaleLowerCase("ja").includes(queryText);
+  });
+}
 
 function applySortPreferences(preferences = {}) {
   if (sortField && preferences.sortField) {
@@ -592,14 +618,14 @@ function resetBooksView() {
   bookList.appendChild(emptyState);
 }
 
-function renderEmptyState() {
+function renderEmptyState(hasFilter = false) {
   if (!bookList) {
     return;
   }
 
   const emptyState = document.createElement("li");
   emptyState.className = "empty-state";
-  emptyState.textContent = "まだ読書記録が登録されていません。";
+  emptyState.textContent = hasFilter ? "条件に一致する課題図書がありません。" : "まだ読書記録が登録されていません。";
   bookList.appendChild(emptyState);
 }
 
@@ -609,9 +635,10 @@ function renderBooks(books) {
   }
 
   currentBooks = books;
+  const filteredBooks = filterBooks(books);
   const field = sortField?.value || "createdAt";
   const direction = sortDirection?.value === "desc" ? -1 : 1;
-  const sortedBooks = [...books].sort((first, second) => {
+  const sortedBooks = [...filteredBooks].sort((first, second) => {
     if (field === "createdAt") {
       const firstDate = first.createdAt?.toMillis?.() || 0;
       const secondDate = second.createdAt?.toMillis?.() || 0;
@@ -637,10 +664,10 @@ function renderBooks(books) {
   });
 
   bookList.innerHTML = "";
-  bookCount.textContent = `${sortedBooks.length}件`;
+  bookCount.textContent = `${sortedBooks.length}件 / 全${books.length}件`;
 
   if (sortedBooks.length === 0) {
-    renderEmptyState();
+    renderEmptyState(filteredBooks.length !== books.length);
     return;
   }
 
@@ -923,6 +950,24 @@ sortField?.addEventListener("change", () => {
 sortDirection?.addEventListener("change", () => {
   renderBooks(currentBooks);
   void saveSortPreferences();
+});
+filterField?.addEventListener("change", () => {
+  const isReadFilter = filterField.value === "read";
+  filterValue?.classList.toggle("hidden", isReadFilter);
+  filterValue.disabled = isReadFilter || !filterField.value;
+  filterReadValue?.classList.toggle("hidden", !isReadFilter);
+  renderBooks(currentBooks);
+});
+filterValue?.addEventListener("input", () => renderBooks(currentBooks));
+filterReadValue?.addEventListener("change", () => renderBooks(currentBooks));
+clearFilterButton?.addEventListener("click", () => {
+  filterField.value = "";
+  filterValue.value = "";
+  filterValue.disabled = true;
+  filterValue.classList.remove("hidden");
+  filterReadValue.value = "";
+  filterReadValue.classList.add("hidden");
+  renderBooks(currentBooks);
 });
 
 async function loadBooksOnce(userId) {
