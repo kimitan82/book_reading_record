@@ -124,6 +124,19 @@ function getResponsibilityStatement(item) {
   return responsibility ? responsibility.replace(/\s*,\s*/g, " / ") : "";
 }
 
+function normalizeIsbn(value) {
+  const digits = String(value || "").replace(/\D/g, "");
+  if (!digits) {
+    return "";
+  }
+
+  if (digits.length === 13 && /^97[89]4/.test(digits)) {
+    return `${digits.slice(0, 3)}-${digits.slice(3, 4)}-${digits.slice(4, 8)}-${digits.slice(8, 12)}-${digits.slice(12)}`;
+  }
+
+  return value.trim();
+}
+
 async function lookupBookByIsbn() {
   const isbn = isbnInput?.value.replace(/[-\s]/g, "").trim();
 
@@ -178,6 +191,7 @@ async function lookupBookByIsbn() {
     if (publisher) {
       publisherInput.value = publisher;
     }
+    isbnInput.value = normalizeIsbn(isbn);
 
     setStatus("書誌情報を取得しました。内容を確認して登録してください。", "success");
   } catch (error) {
@@ -286,7 +300,7 @@ function createBookFromCsvRow(row, headerIndex) {
     series: getValue("series"),
     author: getValue("author") || "著者未記入",
     publisher: getValue("publisher"),
-    isbn: getValue("isbn"),
+    isbn: normalizeIsbn(getValue("isbn")),
     read: readValue === "true" || readValue === "読んだ",
     readDate: getValue("readDate"),
     comment: getValue("comment"),
@@ -321,7 +335,7 @@ async function exportBooksToCsv() {
         book.series,
         book.author,
         book.publisher,
-        book.isbn,
+        normalizeIsbn(book.isbn),
         book.read ? "読んだ" : "未読",
         book.readDate,
         book.comment,
@@ -558,7 +572,7 @@ function renderBooks(books) {
       book.course ? `コース: ${book.course}` : "",
       book.series ? `シリーズ: ${book.series}` : "",
       book.publisher ? `出版社: ${book.publisher}` : "",
-      book.isbn ? `ISBN: ${book.isbn}` : "",
+      book.isbn ? `ISBN: ${normalizeIsbn(book.isbn)}` : "",
     ].filter(Boolean);
     details.textContent = detailItems.length > 0 ? detailItems.join(" / ") : "詳細情報未記入";
 
@@ -750,7 +764,7 @@ function renderBooks(books) {
             series: seriesField.value.trim(),
             author: authorField.value.trim() || "著者未記入",
             publisher: publisherField.value.trim(),
-            isbn: isbnField.value.trim(),
+            isbn: normalizeIsbn(isbnField.value),
             updatedAt: serverTimestamp(),
           });
           setStatus(`${titleField.value.trim()}を更新しました。`, "success");
@@ -1069,7 +1083,7 @@ form?.addEventListener("submit", async (event) => {
   const series = seriesInput.value.trim();
   const author = authorInput.value.trim();
   const publisher = publisherInput.value.trim();
-  const isbn = isbnInput.value.trim();
+  const isbn = normalizeIsbn(isbnInput.value);
   const read = readInput.value === "true";
   const readDate = readDateInput.value;
   const comment = commentInput.value.trim();
