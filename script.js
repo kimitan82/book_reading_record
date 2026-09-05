@@ -1071,7 +1071,7 @@ async function handleAuthStateChanged(user) {
     toggleAuthRequiredSections(false);
     resetBooksView();
     userNameLabel.textContent = "未ログイン";
-    userIdLabel.textContent = "Firebase UID: 未ログイン";
+    if (userIdLabel) userIdLabel.textContent = "";
     setStatus("ログインしてください。", "");
     setAuthStatus("", "");
     return;
@@ -1079,7 +1079,7 @@ async function handleAuthStateChanged(user) {
 
   toggleAuthRequiredSections(true);
   userNameLabel.textContent = user.displayName || user.email?.split("@")[0] || "ユーザー";
-  userIdLabel.textContent = `Firebase UID: ${user.uid}`;
+  if (userIdLabel) userIdLabel.textContent = "";
   void ensureUserProfile(user);
   setAuthStatus(`ログイン中: ${user.email || "メールアドレス未設定"}`, "success");
   setStatus("", "");
@@ -1106,7 +1106,7 @@ async function showLoggedInState(user) {
   currentUser = user;
   toggleAuthRequiredSections(true);
   userNameLabel.textContent = user.displayName || user.email?.split("@")[0] || "ユーザー";
-  userIdLabel.textContent = `Firebase UID: ${user.uid}`;
+  if (userIdLabel) userIdLabel.textContent = "";
   void ensureUserProfile(user);
   setAuthStatus(`ログイン中: ${user.email || "メールアドレス未設定"}`, "success");
   setStatus("", "");
@@ -1198,7 +1198,7 @@ logoutButton.addEventListener("click", async () => {
     toggleAuthRequiredSections(false);
     resetBooksView();
     userNameLabel.textContent = "未ログイン";
-    userIdLabel.textContent = "Firebase UID: 未ログイン";
+    if (userIdLabel) userIdLabel.textContent = "";
     setAuthStatus("ログアウトしました。", "success");
   } catch (error) {
     console.error(error);
